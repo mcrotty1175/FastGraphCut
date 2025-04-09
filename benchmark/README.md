@@ -1,1 +1,1 @@
-Compile with `gcc grabcut.cpp -Wc++11-extensions`
+Compile with `nvcc grabcut.cpp -std=c++11`
