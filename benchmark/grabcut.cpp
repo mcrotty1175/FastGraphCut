@@ -6,6 +6,8 @@
 #include <iterator>
 #include "grabcut.h"
 #include "graph.hpp"
+#include <opencv2/opencv.hpp>
+#include <iostream>
 
 #define COMPONENT_COUNT 5
 
@@ -449,85 +451,85 @@ static void learnGMMs(image_t *img, mask_t *mask, int *compIdxs, GMM_t *bgdGMM, 
     endLearning(fgdGMM);
 }
 
-// static void constructGCGraph(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM, double lambda,
-//                              weight_t leftW, weight_t upleftW, weight_t upW, weight_t uprightW,
-//                              GCGraph<double> &graph)
-// {
-//     int vtxCount = img->cols * img->rows,
-//         edgeCount = 2 * (4 * img->cols * img->rows - 3 * (img->cols + img->rows) + 2);
-//     graph.create(vtxCount, edgeCount);
-//     for (int r = 0; r < img->rows; r++)
-//     {
-//         int row_index = r * img->cols;
-//         for (int c = 0; c < img->cols; c++)
-//         {
-//             // add node
-//             int vtxIdx = graph.addVtx();
-//             pixel_t color = *img_at(img, r, c);
+static void constructGCGraph(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM, double lambda,
+                             weight_t leftW, weight_t upleftW, weight_t upW, weight_t uprightW,
+                             GCGraph<double> &graph)
+{
+    int vtxCount = img->cols * img->rows,
+        edgeCount = 2 * (4 * img->cols * img->rows - 3 * (img->cols + img->rows) + 2);
+    graph.create(vtxCount, edgeCount);
+    for (int r = 0; r < img->rows; r++)
+    {
+        int row_index = r * img->cols;
+        for (int c = 0; c < img->cols; c++)
+        {
+            // add node
+            int vtxIdx = graph.addVtx();
+            pixel_t color = *img_at(img, r, c);
 
-//             // set t-weights
-//             double fromSource, toSink;
-//             MaskVal m = mask_at(mask, r, c);
-//             if (m == GC_PR_BGD || m == GC_PR_FGD)
-//             {
-//                 fromSource = -log(doSomething(bgdGMM, color));
-//                 toSink = -log(doSomething(fgdGMM, color));
-//             }
-//             else if (m == GC_BGD)
-//             {
-//                 fromSource = 0;
-//                 toSink = lambda;
-//             }
-//             else // GC_FGD
-//             {
-//                 fromSource = lambda;
-//                 toSink = 0;
-//             }
-//             graph.addTermWeights(vtxIdx, fromSource, toSink);
+            // set t-weights
+            double fromSource, toSink;
+            MaskVal m = mask_at(mask, r, c);
+            if (m == GC_PR_BGD || m == GC_PR_FGD)
+            {
+                fromSource = -log(doSomething(bgdGMM, color));
+                toSink = -log(doSomething(fgdGMM, color));
+            }
+            else if (m == GC_BGD)
+            {
+                fromSource = 0;
+                toSink = lambda;
+            }
+            else // GC_FGD
+            {
+                fromSource = lambda;
+                toSink = 0;
+            }
+            graph.addTermWeights(vtxIdx, fromSource, toSink);
 
-//             // set n-weights
-//             if (c > 0)
-//             {
-//                 double w = leftW[row_index + c];
-//                 graph.addEdges(vtxIdx, vtxIdx - 1, w, w);
-//             }
-//             if (c > 0 && r > 0)
-//             {
-//                 double w = upleftW[row_index + c];
-//                 graph.addEdges(vtxIdx, vtxIdx - img->cols - 1, w, w);
-//             }
-//             if (r > 0)
-//             {
-//                 double w = upW[row_index + c];
-//                 graph.addEdges(vtxIdx, vtxIdx - img->cols, w, w);
-//             }
-//             if (c < img->cols - 1 && r > 0)
-//             {
-//                 double w = uprightW[row_index + c];
-//                 graph.addEdges(vtxIdx, vtxIdx - img->cols + 1, w, w);
-//             }
-//         }
-//     }
-// }
+            // set n-weights
+            if (c > 0)
+            {
+                double w = leftW[row_index + c];
+                graph.addEdges(vtxIdx, vtxIdx - 1, w, w);
+            }
+            if (c > 0 && r > 0)
+            {
+                double w = upleftW[row_index + c];
+                graph.addEdges(vtxIdx, vtxIdx - img->cols - 1, w, w);
+            }
+            if (r > 0)
+            {
+                double w = upW[row_index + c];
+                graph.addEdges(vtxIdx, vtxIdx - img->cols, w, w);
+            }
+            if (c < img->cols - 1 && r > 0)
+            {
+                double w = uprightW[row_index + c];
+                graph.addEdges(vtxIdx, vtxIdx - img->cols + 1, w, w);
+            }
+        }
+    }
+}
 
-// static void estimateSegmentation(GCGraph<double> &graph, mask_t *mask)
-// {
-//     graph.maxFlow();
-//     for (int r = 0; r < mask->rows; r++)
-//     {
-//         for (int c = 0; c < mask->cols; c++)
-//         {
-//             MaskVal m = mask_at(mask, r, c);
-//             if (m == GC_PR_BGD || m == GC_PR_FGD)
-//             {
-//                 if (graph.inSourceSegment(r * mask->cols + c /*vertex index*/))
-//                     mask_set(mask, r, c, GC_PR_FGD);
-//                 else
-//                     mask_set(mask, r, c, GC_PR_BGD);
-//             }
-//         }
-//     }
-// }
+static void estimateSegmentation(GCGraph<double> &graph, mask_t *mask)
+{
+    graph.maxFlow();
+    for (int r = 0; r < mask->rows; r++)
+    {
+        for (int c = 0; c < mask->cols; c++)
+        {
+            MaskVal m = mask_at(mask, r, c);
+            if (m == GC_PR_BGD || m == GC_PR_FGD)
+            {
+                if (graph.inSourceSegment(r * mask->cols + c /*vertex index*/))
+                    mask_set(mask, r, c, GC_PR_FGD);
+                else
+                    mask_set(mask, r, c, GC_PR_BGD);
+            }
+        }
+    }
+}
 
 void grabCut(image_t *img, rect_t rect, int iterCount)
 {
@@ -558,16 +560,22 @@ void grabCut(image_t *img, rect_t rect, int iterCount)
         GCGraph<double> graph;
         assignGMMsComponents(img, mask, bgdGMM, fgdGMM, compIdxs);
         learnGMMs(img, mask, compIdxs, bgdGMM, fgdGMM);
-        // constructGCGraph(img, mask, bgdGMM, fgdGMM, lambda, leftW, upleftW, upW, uprightW, graph);
-        // estimateSegmentation(graph, mask);
+        constructGCGraph(img, mask, bgdGMM, fgdGMM, lambda, leftW, upleftW, upW, uprightW, graph);
+        estimateSegmentation(graph, mask);
     }
 }
 
 int main()
 {
-    // read image
-    //  read bounding box
-    //  call grabcut
-    grabCut(NULL, {0, 0, 0, 0}, 0);
+    cv::Mat image = cv::imread("~/dataset/small/24077.jpg");
+
+    if (image.empty())
+    {
+        std::cerr << "Image not loaded!" << std::endl;
+        return -1;
+    }
+
+    cv::imshow("Loaded Image", image);
+    cv::waitKey(0);
     return 0;
 }
