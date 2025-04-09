@@ -5,6 +5,7 @@
 #include <queue>
 #include <algorithm>
 #include <limits>
+#include <iostream>
 
 struct GraphNode;
 struct GraphArc;
@@ -70,7 +71,10 @@ public:
     }
 
     TWeight maxFlow() {
+        std::cout << "max flow called\n";
         initialize_preflow();
+
+        std::cout << "initialize preflow called\n";
 
         std::queue<int> active;
         for (int i = 0; i < nodes.size(); ++i) {
@@ -78,6 +82,8 @@ public:
                 active.push(i);
             }
         }
+
+        std::cout << "active queue initialized\n";
 
         while (!active.empty()) {
             int u = active.front();
@@ -104,14 +110,18 @@ private:
     const int SINK = 1;
 
     void initialize_preflow() {
+        std::cout << "initialize preflow\n";
         for (auto& node : nodes) {
             node.height = 0;
             node.excess = 0;
             node.reachable = false;
         }
+        std::cout << "nodes cleared\n";
         nodes[SOURCE].height = nodes.size();
-
-        for (GraphArc* arc = nodes[SOURCE].first; arc; ++arc) {
+        std::cout << "source height set\n";
+        GraphArc* arc = nodes[SOURCE].first;
+        std::cout << "arc set t\n" ;
+        while (arc) {
             FlowType cap = arc->r_cap;
             if (cap > 0) {
                 arc->r_cap = 0;
@@ -119,7 +129,9 @@ private:
                 arc->head->excess += cap;
                 nodes[SOURCE].excess -= cap;
             }
+            arc = arc->sister;
         }
+        std::cout << "source excess set\n";
     }
 
     bool discharge(int u) {
