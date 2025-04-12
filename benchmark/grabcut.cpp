@@ -561,8 +561,44 @@ static void estimateSegmentation(GCGraph<double> graph, mask_t *mask)
         }
     }
 }
+void displayImage(image_t *img) {
+    cv::Mat displayImg(img->rows, img->cols, CV_8UC3);
+    std::cout << "create display image mat\n";
+    for (int r = 0; r < img->rows; r++)
+    {
+        for (int c = 0; c < img->cols; c++)
+        {
+            pixel_t *color = img_at(img, r, c);
+            displayImg.at<cv::Vec3b>(r, c) = cv::Vec3b(color->b, color->g, color->r);
+        }
+    }
+    cv::imshow("Image", displayImg);
+    cv::waitKey(0);
+}
 
-void grabCut(image_t *img, rect_t rect, int iterCount)
+void gettingOutput(image_t *img, mask_t *mask, image_t *foreground, image_t *background)
+{
+    for (int r = 0; r < img->rows; r++)
+    {
+        for (int c = 0; c < img->cols; c++)
+        {
+            pixel_t *color = img_at(img, r, c);
+            if (mask_at(mask, r, c) == GC_FGD || mask_at(mask, r, c) == GC_PR_FGD)
+            {
+                foreground->array[r * img->cols + c] = *color;
+                background->array[r * img->cols + c] = {0, 0, 0};
+            }
+            else
+            {
+                background->array[r * img->cols + c] = *color;
+                foreground->array[r * img->cols + c] = {0, 0, 0};
+            }
+        }
+    }
+}
+
+
+void grabCut(image_t *img, rect_t rect, image_t *foreground, image_t *background, int iterCount)
 {
     int num_pixels = img->rows * img->cols;
     std::cout << "grabCut called\n";
@@ -615,27 +651,16 @@ void grabCut(image_t *img, rect_t rect, int iterCount)
         estimateSegmentation(graph, mask);
         cout << "estimate segmentation\n";
     }
-    cout << "after lop\n";  
-}
+    gettingOutput(img, mask, foreground, background);
 
-void displayImage(image_t *img) {
-    cv::Mat displayImg(img->rows, img->cols, CV_8UC3);
-    std::cout << "create display image mat\n";
-    for (int r = 0; r < img->rows; r++)
-    {
-        for (int c = 0; c < img->cols; c++)
-        {
-            pixel_t *color = img_at(img, r, c);
-            displayImg.at<cv::Vec3b>(r, c) = cv::Vec3b(color->b, color->g, color->r);
-        }
-    }
-    cv::imshow("Image", displayImg);
-    cv::waitKey(0);
+    displayImage(foreground);
+    displayImage(background);
+    cout << "after lop\n";  
 }
 
 int main()
 {
-    cv::Mat image = cv::imread("../dataset/small/24077.jpg");
+    cv::Mat image = cv::imread("../dataset/large/24077.jpg");
 
     if (image.empty())
     {
@@ -648,6 +673,16 @@ int main()
     image_t *img = (image_t *)malloc(sizeof(image_t));
     img->rows = image.rows;
     img->cols = image.cols;
+
+    image_t *foreground = (image_t *)malloc(sizeof(image_t));
+    foreground->rows = image.rows;
+    foreground->cols = image.cols;
+    foreground->array = (pixel_t *)malloc(img->rows * img->cols * sizeof(pixel_t));
+
+    image_t *background = (image_t *)malloc(sizeof(image_t));
+    background->rows = image.rows;
+    background->cols = image.cols;
+    background->array = (pixel_t *)malloc(img->rows * img->cols * sizeof(pixel_t));
 
     std::cout << "image dimensions: " << img->rows << " " << img->cols << std::endl;
     img->array = (pixel_t *)malloc(img->rows * img->cols * sizeof(pixel_t));
@@ -666,11 +701,12 @@ int main()
     // displayImage(img);
 
     // 24077.jpg 1 1 98 79
-    grabCut(img, {1, 1, 98, 79}, 5);
-
-    
+    // grabCut(img, {1, 1, 98, 79}, 5);
+    grabCut(img, {5, 7, 393, 318}, foreground, background, 5);
 
     // cv::imshow("Loaded Image", img.array);
     // cv::waitKey(0);
+    free(img->array);
+    free(img);
     return 0;
 }

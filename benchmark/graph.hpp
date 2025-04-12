@@ -63,9 +63,9 @@ public:
         nodes.push_back(GraphNode{nullptr, 0, 0, false}); // SOURCE (index 0)
         nodes.push_back(GraphNode{nullptr, 0, 0, false}); // SINK (index 1)
 
-        for (int i = 0; i < node_count; ++i) {
-            addVtx();
-        }
+        // for (int i = 0; i < node_count; ++i) {
+        //     addVtx();
+        // }
 
         flow = 0;
     }
@@ -110,26 +110,47 @@ private:
     const int SINK = 1;
 
     void initialize_preflow() {
-        std::cout << "initialize preflow\n";
+        // int i = 0;
         for (auto& node : nodes) {
+            // std::cout << "node initialized " << i++ << "\n";
             node.height = 0;
             node.excess = 0;
             node.reachable = false;
         }
+        std::cout << "initialize preflow " << nodes.size() << "\n";
         std::cout << "nodes cleared\n";
         nodes[SOURCE].height = nodes.size();
         std::cout << "source height set\n";
         GraphArc* arc = nodes[SOURCE].first;
         std::cout << "arc set t\n" ;
-        while (arc) {
-            FlowType cap = arc->r_cap;
-            if (cap > 0) {
-                arc->r_cap = 0;
-                arc->sister->r_cap += cap;
-                arc->head->excess += cap;
-                nodes[SOURCE].excess -= cap;
+        // while (arc) {
+            
+        //     FlowType cap = arc->r_cap;
+        //     // std::cout << "arc is not null \n" << cap << "\n";
+        //     if (cap > 0) {
+        //         // std::cout << "arc cap > 0\n";
+        //         arc->r_cap = 0;
+        //         arc->sister->r_cap += cap;
+        //         arc->head->excess += cap;
+        //         nodes[SOURCE].excess -= cap;
+        //     }
+        //     // std::cout << "arc sister is " << (arc->sister == nullptr) << "\n";
+        //     arc = arc + 1;
+        //     // std::cout << "arc updated " << (arc == nullptr) << "\n";
+        // }
+
+        for (int i = 0; i < nodes.size(); i++) {
+            GraphArc* arc = nodes[i].first;
+            if (arc) {
+                FlowType cap = arc->r_cap;
+                if (cap > 0) {
+                    arc->r_cap = 0;
+                    arc->sister->r_cap += cap;
+                    arc->head->excess += cap;
+                    nodes[SOURCE].excess -= cap;
+                }
+                // arc = arc->sister;
             }
-            arc = arc->sister;
         }
         std::cout << "source excess set\n";
     }
@@ -173,13 +194,17 @@ private:
     }
 
     void markSourceSegment() {
+        std::cout << "mark source segment called\n";
         std::queue<int> q;
         q.push(SOURCE);
         nodes[SOURCE].reachable = true;
 
         while (!q.empty()) {
             int u = q.front(); q.pop();
-            for (GraphArc* arc = nodes[u].first; arc; ++arc) {
+            GraphArc* arc = nodes[u].first;
+
+            for (int i = u; i < nodes.size(); i++) {
+                arc = nodes[u].first;
                 int v = static_cast<int>(arc->head - &nodes[0]);
                 if (arc->r_cap > 0 && !nodes[v].reachable) {
                     nodes[v].reachable = true;
