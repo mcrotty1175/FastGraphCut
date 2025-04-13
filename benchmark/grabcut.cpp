@@ -288,9 +288,17 @@ static void initMaskWithRect(mask_t *mask, rect_t rect, image_t *img)
 
     for (int r = start_y; r < end_y; r++)
     {
-        int row_index = r * img->cols;
-        memset(&(mask->array[row_index + start_x]), GC_PR_FGD, width * sizeof(MaskVal));
+        for (int c = start_x; c < start_x + width; c++)
+        {
+            mask->array[r * img->cols + c] = GC_PR_FGD;
+        }
     }
+
+    // for (int r = start_y; r < end_y; r++)
+    // {
+    //     int row_index = r * img->cols;
+    //     memset(&(mask->array[row_index + start_x]), GC_PR_FGD, width * sizeof(MaskVal));
+    // }
 }
 
 void kmeans(pixel_t *pixels, int num_pixels, int k, int num_clusters, int max_iters, int *labels)
