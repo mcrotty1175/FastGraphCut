@@ -13,13 +13,14 @@ struct GraphArc;
 typedef int FlowType;
 
 struct GraphArc {
-    GraphNode* head;
-    GraphArc* sister;
-    FlowType r_cap;
+    GraphNode* head; //destination node
+    GraphArc* sister; //reverse edge
+    FlowType r_cap; //residual capacity
+    GraphArc* next; //next arc in the adjacency list
 };
 
 struct GraphNode {
-    GraphArc* first;
+    GraphArc* first; //first arc in the adjacency list
     int height;
     FlowType excess;
     bool reachable; // used for inSourceSegment
@@ -37,15 +38,21 @@ public:
     }
 
     void addEdges(int from, int to, TWeight cap, TWeight rev_cap) {
-        GraphArc a = { &nodes[to], nullptr, cap };
-        GraphArc a_rev = { &nodes[from], nullptr, rev_cap };
+        GraphArc a = { &nodes[to], nullptr, cap , nullptr };
+        GraphArc a_rev = { &nodes[from], nullptr, rev_cap , nullptr };
         arcs.push_back(a);
         arcs.push_back(a_rev);
-        arcs[arcs.size() - 2].sister = &arcs.back();
-        arcs[arcs.size() - 1].sister = &arcs[arcs.size() - 2];
 
-        if (!nodes[from].first) nodes[from].first = &arcs[arcs.size() - 2];
-        if (!nodes[to].first) nodes[to].first = &arcs[arcs.size() - 1];
+        GraphArc* forwardArc = &arcs[arcs.size() - 2];
+        GraphArc* backwardArc = &arcs[arcs.size() - 1];
+        forwardArc->sister = backwardArc;
+        backwardArc->sister = forwardArc;
+
+        forwardArc->next = nodes[from].first; 
+        nodes[from].first = forwardArc;
+
+        backwardArc->next = nodes[to].first;
+        nodes[to].first = backwardArc;
     }
 
     void addTermWeights(int i, TWeight source_cap, TWeight sink_cap) {
@@ -110,48 +117,27 @@ private:
     const int SINK = 1;
 
     void initialize_preflow() {
-        // int i = 0;
         for (auto& node : nodes) {
-            // std::cout << "node initialized " << i++ << "\n";
             node.height = 0;
             node.excess = 0;
             node.reachable = false;
         }
-        std::cout << "initialize preflow " << nodes.size() << "\n";
-        std::cout << "nodes cleared\n";
         nodes[SOURCE].height = nodes.size();
         std::cout << "source height set\n";
-        GraphArc* arc = nodes[SOURCE].first;
-        std::cout << "arc set t\n" ;
-        // while (arc) {
-            
-        //     FlowType cap = arc->r_cap;
-        //     // std::cout << "arc is not null \n" << cap << "\n";
-        //     if (cap > 0) {
-        //         // std::cout << "arc cap > 0\n";
-        //         arc->r_cap = 0;
-        //         arc->sister->r_cap += cap;
-        //         arc->head->excess += cap;
-        //         nodes[SOURCE].excess -= cap;
-        //     }
-        //     // std::cout << "arc sister is " << (arc->sister == nullptr) << "\n";
-        //     arc = arc + 1;
-        //     // std::cout << "arc updated " << (arc == nullptr) << "\n";
-        // }
 
-        for (int i = 0; i < nodes.size(); i++) {
-            GraphArc* arc = nodes[i].first;
-            if (arc) {
-                FlowType cap = arc->r_cap;
-                if (cap > 0) {
-                    arc->r_cap = 0;
-                    arc->sister->r_cap += cap;
-                    arc->head->excess += cap;
-                    nodes[SOURCE].excess -= cap;
-                }
-                // arc = arc->sister;
+        GraphArc* arc = nodes[SOURCE].first;
+        while (arc != nullptr) {
+            FlowType cap = arc->r_cap;
+
+            if (cap > 0) {
+                arc->r_cap = 0;
+                arc->sister->r_cap += cap;
+                arc->head->excess += cap;
+                nodes[SOURCE].excess -= cap;
             }
+            arc = arc->next;
         }
+
         std::cout << "source excess set\n";
     }
 
@@ -159,17 +145,23 @@ private:
         auto& node = nodes[u];
         while (node.excess > 0) {
             GraphArc* arc = node.first;
+            bool pushed = false;
             while (arc) {
                 if (arc->r_cap > 0 && node.height == arc->head->height + 1) {
                     push(node, *arc);
-                    if (node.excess == 0) return false;
+                    pushed = true;
+                    if (node.excess == 0) {
+                        return false;
+                    }
                 }
-                arc = arc->sister;
+                arc = arc->next;
             }
-            relabel(u);
-            return true;
+
+            if (!pushed) {
+                relabel(u);
+            }
         }
-        return false;
+        return node.excess > 0;
     }
 
     void push(GraphNode& u, GraphArc& arc) {
@@ -178,12 +170,14 @@ private:
         arc.sister->r_cap += send;
         arc.head->excess += send;
         u.excess -= send;
-        if (arc.head == &nodes[SINK]) flow += send;
+        if (arc.head == &nodes[SINK] && send > 0) {
+            flow += send;
+        }
     }
 
     void relabel(int u) {
         int min_height = std::numeric_limits<int>::max();
-        for (GraphArc* arc = nodes[u].first; arc; ++arc) {
+        for (GraphArc* arc = nodes[u].first; arc; arc = arc->next) {
             if (arc->r_cap > 0) {
                 min_height = std::min(min_height, arc->head->height);
             }
@@ -198,18 +192,23 @@ private:
         std::queue<int> q;
         q.push(SOURCE);
         nodes[SOURCE].reachable = true;
+        
+        std::cout << "SOURCE reachable: " << nodes[SOURCE].reachable << "\n";
 
         while (!q.empty()) {
-            int u = q.front(); q.pop();
+            int u = q.front(); 
+            q.pop();
             GraphArc* arc = nodes[u].first;
 
-            for (int i = u; i < nodes.size(); i++) {
-                arc = nodes[u].first;
+            while (arc != nullptr) {
                 int v = static_cast<int>(arc->head - &nodes[0]);
+            
                 if (arc->r_cap > 0 && !nodes[v].reachable) {
                     nodes[v].reachable = true;
+                    std::cout << "node " << v << " reachable\n";
                     q.push(v);
                 }
+                arc = arc->next;
             }
         }
     }

@@ -410,25 +410,16 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
 
     // can use streams? one for fg and one for bg
     initLearning(bgdGMM);
-    // cout << "done with init learning 1\n";
-
-    // cout << "bgdSamples size: " << bgdSamples.size() << "\n";
     for (int i = 0; i < (int)bgdSamples.size(); i++)
     {
-        // cout << "bgdSamples" << i << "]: " << (int)bgdSamples[i].r << " " << (int)bgdSamples[i].g << " " << (int)bgdSamples[i].b << "\n";
-        // cout << "bgdLabels[" << i << "]: " << bgdLabels[i] << "\n";
         addSample(bgdGMM, bgdLabels[i], bgdSamples[i]);
     }
         
-
-    // cout << "done with loop after learning 1\n";
     endLearning(bgdGMM);
 
     initLearning(fgdGMM);
-    // cout << "done with init learning 2\n";
     for (int i = 0; i < (int)fgdSamples.size(); i++)
         addSample(fgdGMM, fgdLabels[i], fgdSamples[i]);
-    // cout << "done with loop after learning 2\n";
     endLearning(fgdGMM);
 }
 
@@ -543,7 +534,7 @@ static void constructGCGraph(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *f
     }
 }
 
-static void estimateSegmentation(GCGraph<double> graph, mask_t *mask)
+static void estimateSegmentation(GCGraph<double>& graph, mask_t *mask)
 {
     graph.maxFlow();
     for (int r = 0; r < mask->rows; r++)
@@ -553,14 +544,20 @@ static void estimateSegmentation(GCGraph<double> graph, mask_t *mask)
             MaskVal m = mask_at(mask, r, c);
             if (m == GC_PR_BGD || m == GC_PR_FGD)
             {
-                if (graph.inSourceSegment(r * mask->cols + c /*vertex index*/))
+                if (graph.inSourceSegment(r * mask->cols + c /*vertex index*/)) {
                     mask_set(mask, r, c, GC_PR_FGD);
-                else
+                    cout << "mask[" << r << "][" << c << "] = GC_PR_FGD\n";
+                }
+                else {
                     mask_set(mask, r, c, GC_PR_BGD);
+                    cout << "mask[" << r << "][" << c << "] = GC_PR_BGD\n";
+                }
+                    
             }
         }
     }
 }
+
 void displayImage(image_t *img) {
     cv::Mat displayImg(img->rows, img->cols, CV_8UC3);
     std::cout << "create display image mat\n";
@@ -615,6 +612,9 @@ void grabCut(image_t *img, rect_t rect, image_t *foreground, image_t *background
     int *compIdxs = (int *)malloc(num_pixels * sizeof(int));
 
     initMaskWithRect(mask, rect, img);
+    // gettingOutput(img, mask, foreground, background);
+    // displayImage(foreground);
+    // displayImage(background);
     cout << "init mask with rect\n";
     initGMMs(img, mask, bgdGMM, fgdGMM);
     cout << "init gmms again\n";
@@ -638,24 +638,24 @@ void grabCut(image_t *img, rect_t rect, image_t *foreground, image_t *background
     calcNWeights(img, leftW, upleftW, upW, uprightW, beta, gamma);
 
     cout << "calc nweights\n";
-    for (int i = 0; i < 1; i++) //i< iterCount
+    for (int i = 0; i < iterCount; i++) //i< iterCount
     {
         GCGraph<double> graph;
-        cout << "create graph\n";
+        // cout << "create graph\n";
         assignGMMsComponents(img, mask, bgdGMM, fgdGMM, compIdxs);
-        cout << "assign gmms components\n";
+        // cout << "assign gmms components\n";
         learnGMMs(img, mask, compIdxs, bgdGMM, fgdGMM);
-        cout << "learn gmms\n";
+        // cout << "learn gmms\n";
         constructGCGraph(img, mask, bgdGMM, fgdGMM, lambda, leftW, upleftW, upW, uprightW, graph);
-        cout << "construct graph\n";
+        // cout << "construct graph\n";
         estimateSegmentation(graph, mask);
-        cout << "estimate segmentation\n";
+        // cout << "estimate segmentation\n";
     }
     gettingOutput(img, mask, foreground, background);
 
     displayImage(foreground);
     displayImage(background);
-    cout << "after lop\n";  
+    // cout << "after lop\n";  
 }
 
 int main()
