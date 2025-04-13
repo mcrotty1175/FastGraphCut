@@ -44,6 +44,10 @@ void initEmptyGMM(GMM_t *gmm)
 
     // gmm = (GMM_t *)malloc(sizeof(GMM_t));
     gmm->model = (double *)calloc(modelSize * COMPONENT_COUNT, sizeof(double));
+    if (gmm->model == NULL) {
+        std::cerr << "Memory allocation failed!" << std::endl;
+        return; //DO WE NEED THIS?
+    }
 
     gmm->coefs = gmm->model;
     gmm->mean = gmm->coefs + COMPONENT_COUNT;
@@ -172,6 +176,9 @@ void endLearning(GMM_t *gmm)
 
 void calcInverseCovAndDeterm(GMM_t *gmm, int ci, double singularFix)
 {
+    if (gmm == NULL)
+        return;
+
     if (gmm->coefs[ci] > 0)
     {
         double *c = gmm->cov + 9 * ci;
@@ -270,17 +277,19 @@ static void initMaskWithRect(mask_t *mask, rect_t rect, image_t *img)
     mask->array = (MaskVal *)calloc(img->rows * img->cols, sizeof(MaskVal));
 
     int start_x = rect.x;
-    int remaining_width = img->cols - rect.x;
-    int width = (rect.width > remaining_width) ? rect.width : remaining_width;
     int start_y = rect.y;
-    int remaining_height = img->rows - rect.y;
+
+    int remaining_width = img->cols - start_x;
+    int width = (rect.width < remaining_width) ? rect.width : remaining_width;
+    
+    int remaining_height = img->rows -start_y;
     int end_y = rect.height < remaining_height ? rect.height : remaining_height;
     end_y += start_y;
 
     for (int r = start_y; r < end_y; r++)
     {
         int row_index = r * img->cols;
-        memset(&(mask->array[row_index + start_x]), GC_PR_FGD, width);
+        memset(&(mask->array[row_index + start_x]), GC_PR_FGD, width * sizeof(MaskVal));
     }
 }
 
@@ -660,7 +669,7 @@ void grabCut(image_t *img, rect_t rect, image_t *foreground, image_t *background
 
 int main()
 {
-    cv::Mat image = cv::imread("../dataset/large/24077.jpg");
+    cv::Mat image = cv::imread("../dataset/small/86016.jpg");
 
     if (image.empty())
     {
@@ -702,7 +711,7 @@ int main()
 
     // 24077.jpg 1 1 98 79
     // grabCut(img, {1, 1, 98, 79}, 5);
-    grabCut(img, {5, 7, 393, 318}, foreground, background, 5);
+    grabCut(img, {21, 12, 104, 40}, foreground, background, 10);
 
     // cv::imshow("Loaded Image", img.array);
     // cv::waitKey(0);
