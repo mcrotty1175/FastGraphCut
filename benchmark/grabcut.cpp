@@ -172,6 +172,25 @@ void endLearning(GMM_t *gmm)
             calcInverseCovAndDeterm(gmm, ci, 0.01);
         }
     }
+    // Print GMM means
+    std::cout << "GMM Means:" << std::endl;
+    for (int ci = 0; ci < COMPONENT_COUNT; ci++)
+    {
+        double *m = gmm->mean + 3 * ci;
+        std::cout << "Component " << ci << ": (" << m[0] << ", " << m[1] << ", " << m[2] << ")" << std::endl;
+    }
+
+    // Print GMM covariance matrices
+    std::cout << "GMM Covariance Matrices:" << std::endl;
+    for (int ci = 0; ci < COMPONENT_COUNT; ci++)
+    {
+        double *c = gmm->cov + 9 * ci;
+        std::cout << "Component " << ci << ":" << std::endl;
+        std::cout << "[" << c[0] << ", " << c[1] << ", " << c[2] << "]" << std::endl;
+        std::cout << "[" << c[3] << ", " << c[4] << ", " << c[5] << "]" << std::endl;
+        std::cout << "[" << c[6] << ", " << c[7] << ", " << c[8] << "]" << std::endl;
+    }
+    
 }
 
 void calcInverseCovAndDeterm(GMM_t *gmm, int ci, double singularFix)
@@ -293,6 +312,8 @@ static void initMaskWithRect(mask_t *mask, rect_t rect, image_t *img)
             mask->array[r * img->cols + c] = GC_PR_FGD;
         }
     }
+    //std::cout << "Mask after initMaskWithRect:" << std::endl;
+    //std::cout << mask(Rect(0, 0, 10, 10)) << std::endl; // just print a small patch
 
     // for (int r = start_y; r < end_y; r++)
     // {
@@ -389,7 +410,7 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
 {
     int kMeansItCount = 10;
     int k = 5;
-    cout << "in init gmms\n";
+    // cout << "in init gmms\n";
     int *bgdLabels = (int*)malloc(img->rows * img->cols * sizeof(int));
     int *fgdLabels = (int*)malloc(img->rows * img->cols * sizeof(int));
     std::vector<pixel_t> bgdSamples;
@@ -405,6 +426,10 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
                 fgdSamples.push_back(*img_at(img, r, c));
         }
     }
+    cout << "before kmeans\n";
+    cout << "bgd samples size: " << bgdSamples.size() << "\n";
+    cout << "fgd samples size: " << fgdSamples.size() << "\n";
+    
 
     // cout << "first for loop\n";
 
@@ -431,12 +456,13 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
     {
         addSample(bgdGMM, bgdLabels[i], bgdSamples[i]);
     }
-        
+    std::cout << "BGD GMM means weights after initGMMs" << std::endl;
     endLearning(bgdGMM);
 
     initLearning(fgdGMM);
     for (int i = 0; i < (int)fgdSamples.size(); i++)
         addSample(fgdGMM, fgdLabels[i], fgdSamples[i]);
+    std::cout << "FGD GMM means weights after initGMMs" << std::endl;
     endLearning(fgdGMM);
 }
 
@@ -452,7 +478,14 @@ static void assignGMMsComponents(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_
             compIdxs[row_index + c] = (m == GC_BGD || m == GC_PR_BGD) ? whichComponent(bgdGMM, color) : whichComponent(fgdGMM, color);
         }
     }
-}
+    std::map<int, int> componentHistogram;
+    for (int i = 0; i < (img->cols * img->rows); i++)
+        componentHistogram[i]++;
+
+    std::cout << "Component assignment histogram:" << std::endl;
+    for (auto& entry : componentHistogram)
+        std::cout << "Component " << entry.first << ": " << entry.second << " pixels" << std::endl;
+    }
 
 /*
   Learn GMMs parameters.
@@ -479,8 +512,10 @@ static void learnGMMs(image_t *img, mask_t *mask, int *compIdxs, GMM_t *bgdGMM, 
             }
         }
     }
+    std::cout << "BGD GMM means weights after learning:" << std::endl;
     endLearning(bgdGMM);
-    endLearning(fgdGMM);
+    std::cout << "FGD GMM means weights after learning:" << std::endl;
+    endLearning(fgdGMM);    
 }
 
 static void constructGCGraph(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM, double lambda,
@@ -495,8 +530,10 @@ static void constructGCGraph(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *f
 
     cout << "vertex count: " << vtxCount << "\n";
     graph.create(vtxCount, edgeCount);
+    std::cout << "Graph created with " << vtxCount << " vertices and " << edgeCount << " edges." << std::endl;
 
-    cout << "created graph in construct function\n";
+
+    // cout << "created graph in construct function\n";
     for (int r = 0; r < img->rows; r++)
     {
         int row_index = r * img->cols;
@@ -549,6 +586,7 @@ static void constructGCGraph(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *f
             }
         }
     }
+    
 }
 
 static void estimateSegmentation(GCGraph<double>& graph, mask_t *mask)
@@ -563,11 +601,11 @@ static void estimateSegmentation(GCGraph<double>& graph, mask_t *mask)
             {
                 if (graph.inSourceSegment(r * mask->cols + c /*vertex index*/)) {
                     mask_set(mask, r, c, GC_PR_FGD);
-                    cout << "mask[" << r << "][" << c << "] = GC_PR_FGD\n";
+                    //cout << "mask[" << r << "][" << c << "] = GC_PR_FGD\n";
                 }
                 else {
                     mask_set(mask, r, c, GC_PR_BGD);
-                    cout << "mask[" << r << "][" << c << "] = GC_PR_BGD\n";
+                    //cout << "mask[" << r << "][" << c << "] = GC_PR_BGD\n";
                 }
                     
             }
@@ -577,7 +615,7 @@ static void estimateSegmentation(GCGraph<double>& graph, mask_t *mask)
 
 void displayImage(image_t *img) {
     cv::Mat displayImg(img->rows, img->cols, CV_8UC3);
-    std::cout << "create display image mat\n";
+    // std::cout << "create display image mat\n";
     for (int r = 0; r < img->rows; r++)
     {
         for (int c = 0; c < img->cols; c++)
@@ -592,6 +630,7 @@ void displayImage(image_t *img) {
 
 void gettingOutput(image_t *img, mask_t *mask, image_t *foreground, image_t *background)
 {
+    int fg = 0, bg = 0;
     for (int r = 0; r < img->rows; r++)
     {
         for (int c = 0; c < img->cols; c++)
@@ -601,14 +640,18 @@ void gettingOutput(image_t *img, mask_t *mask, image_t *foreground, image_t *bac
             {
                 foreground->array[r * img->cols + c] = *color;
                 background->array[r * img->cols + c] = {0, 0, 0};
+                fg++;
             }
             else
             {
                 background->array[r * img->cols + c] = *color;
                 foreground->array[r * img->cols + c] = {0, 0, 0};
+                bg++;
             }
         }
     }
+    std::cout << "Segmentation result: " << fg << " foreground, " << bg << " background pixels." << std::endl;
+
 }
 
 
@@ -625,16 +668,16 @@ void grabCut(image_t *img, rect_t rect, image_t *foreground, image_t *background
     initEmptyGMM(bgdGMM);
     initEmptyGMM(fgdGMM);
 
-    std::cout << "init GMMs\n";
+    // std::cout << "init GMMs\n";
     int *compIdxs = (int *)malloc(num_pixels * sizeof(int));
 
     initMaskWithRect(mask, rect, img);
-    // gettingOutput(img, mask, foreground, background);
-    // displayImage(foreground);
-    // displayImage(background);
-    cout << "init mask with rect\n";
+    gettingOutput(img, mask, foreground, background);
+    displayImage(foreground);
+    displayImage(background);
+    // cout << "After init mask with rect\n";
     initGMMs(img, mask, bgdGMM, fgdGMM);
-    cout << "init gmms again\n";
+    // cout << "init gmms again\n";
 
     if (iterCount <= 0)
         return;
@@ -644,8 +687,13 @@ void grabCut(image_t *img, rect_t rect, image_t *foreground, image_t *background
 
     // how to copy image over to the gpu
     const double beta = calcBeta(img);
+    std::cout << "Beta: " << beta << std::endl;
+    
+    
 
-    cout << "calc beta\n";
+    // cout << "calc beta\n";
+
+    
 
     double *leftW, *upleftW, *upW, *uprightW;
     leftW = (double*)calloc(num_pixels, sizeof(double));
@@ -653,8 +701,18 @@ void grabCut(image_t *img, rect_t rect, image_t *foreground, image_t *background
     upW = (double*)calloc(num_pixels, sizeof(double));
     uprightW = (double*)calloc(num_pixels, sizeof(double));
     calcNWeights(img, leftW, upleftW, upW, uprightW, beta, gamma);
+    std::cout << "Left edge weights sample:" << std::endl;
+    for (int y = 0; y < 5; ++y) {
+        for (int x = 0; x < 5; ++x) {
+            std::cout << leftW[x + (img->cols)*y] << " ";
+        }
+        std::cout << std::endl;
+    }
 
-    cout << "calc nweights\n";
+    // cout << "After calc nweights\n";
+    std::cout << "Gamma: " << gamma << std::endl;
+
+    
     for (int i = 0; i < iterCount; i++) //i< iterCount
     {
         GCGraph<double> graph;
@@ -670,8 +728,8 @@ void grabCut(image_t *img, rect_t rect, image_t *foreground, image_t *background
     }
     gettingOutput(img, mask, foreground, background);
 
-    displayImage(foreground);
-    displayImage(background);
+    //displayImage(foreground);
+    //displayImage(background);
     // cout << "after lop\n";  
 }
 
@@ -713,13 +771,13 @@ int main()
             img->array[r * img->cols + c].b = color[0];
         }
     }
-    std::cout << "generated image struct\n";
+    // std::cout << "generated image struct\n";
 
     // displayImage(img);
 
     // 24077.jpg 1 1 98 79
     // grabCut(img, {1, 1, 98, 79}, 5);
-    grabCut(img, {21, 12, 104, 40}, foreground, background, 10);
+    grabCut(img, {21, 12, 104, 40}, foreground, background, 1);
 
     // cv::imshow("Loaded Image", img.array);
     // cv::waitKey(0);
