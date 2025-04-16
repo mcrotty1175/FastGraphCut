@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.12.2)
 project(FastGrabCut)
 
-set(OpenCV_DIR "/afs/ece.cmu.edu/usr/abatrach/Private/build/")
+set(OpenCV_DIR "/afs/ece.cmu.edu/usr/meghnaj/Private/build/")
 
 find_package( OpenCV REQUIRED )
 

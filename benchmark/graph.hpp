@@ -205,7 +205,7 @@ private:
             
                 if (arc->r_cap > 0 && !nodes[v].reachable) {
                     nodes[v].reachable = true;
-                    std::cout << "node " << v << " reachable\n";
+                    // std::cout << "node " << v << " reachable\n";
                     q.push(v);
                 }
                 arc = arc->next;
