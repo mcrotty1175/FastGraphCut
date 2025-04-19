@@ -8,6 +8,7 @@
 #include "graph.hpp"
 #include <opencv2/opencv.hpp>
 #include <iostream>
+#include <omp.h>
 
 #define COMPONENT_COUNT 5
 using namespace std;
@@ -418,6 +419,8 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
 {
     int kMeansItCount = 10;
     int k = 5;
+    double st_f, st_b, et_f, et_b;
+
     // cout << "in init gmms\n";
     std::vector<pixel_t> bgdSamples;
     std::vector<pixel_t> fgdSamples;
@@ -445,15 +448,41 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
     {
         int num_clusters = COMPONENT_COUNT;
         num_clusters = std::min(num_clusters, (int)bgdSamples.size());
+        st_b = omp_get_wtime();
         kmeans(bgdSamples.data(), bgdSamples.size(), k, num_clusters, kMeansItCount,
                bgdLabels);
+        et_b = omp_get_wtime();
+        cout<< "kmeans bgd time: " << et_b - st_b << "\n";
     }
+    /*
+    cuda_add_executable(FastGrabCut gpu/grabcut.cu )
+    target_link_libraries(FastGrabCut
+        ${OpenCV_LIBS}
+        ${CUDA_LIBRARIES}
+        ${CUDA_npps_LIBRARY}
+        ${CUDA_nppi_LIBRARY}
+    )
+    kmeans bgd time: 0.0630348
+    kmeans fgd time: 0.123661
+
+    kmeans bgd time: 0.0622294
+    kmeans fgd time: 0.126288
+    
+    kmeans bgd time: 0.0687867
+    kmeans fgd time: 0.124621
+
+
+
+    */
 
     {
         int num_clusters = COMPONENT_COUNT;
         num_clusters = std::min(num_clusters, (int)fgdSamples.size());
+        st_f = omp_get_wtime();
         kmeans(fgdSamples.data(), fgdSamples.size(), k, num_clusters, kMeansItCount,
                fgdLabels);
+        et_f = omp_get_wtime();
+        cout<< "kmeans fgd time: " << et_f - st_f << "\n";
     }
 
     // cout << "done with kmeans?\n";
@@ -609,14 +638,14 @@ static void estimateSegmentation(GCGraph<double>& graph, mask_t *mask)
             if (m == GC_PR_BGD || m == GC_PR_FGD)
             {
                 if (graph.inSourceSegment(r * mask->cols + c /*vertex index*/)) {
-                    cout << "mask[" << r << "][" << c << "] = " << m;
+                    //cout << "mask[" << r << "][" << c << "] = " << m;
                     mask_set(mask, r, c, GC_PR_FGD);
-                    cout << " mask[" << r << "][" << c << "] = GC_PR_FGD\n";
+                    //cout << " mask[" << r << "][" << c << "] = GC_PR_FGD\n";
                 }
                 else {
-                    cout << "mask[" << r << "][" << c << "] = " << m;
+                    //cout << "mask[" << r << "][" << c << "] = " << m;
                     mask_set(mask, r, c, GC_PR_BGD);
-                    cout << " mask[" << r << "][" << c << "] = GC_PR_BGD\n";
+                    //cout << " mask[" << r << "][" << c << "] = GC_PR_BGD\n";
                 }
                     
             }
