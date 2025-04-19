@@ -8,6 +8,7 @@
 #include "graph.hpp"
 #include <opencv2/opencv.hpp>
 #include <iostream>
+#include <omp.h>
 #include <chrono>
 #include <filesystem>
 
@@ -420,6 +421,8 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
 {
     int kMeansItCount = 10;
     int k = 5;
+    double st_f, st_b, et_f, et_b;
+
     // cout << "in init gmms\n";
     std::vector<pixel_t> bgdSamples;
     std::vector<pixel_t> fgdSamples;

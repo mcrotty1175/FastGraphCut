@@ -8,6 +8,9 @@
 #include "graph.hpp"
 #include <opencv2/opencv.hpp>
 #include <iostream>
+#include <omp.h>
+#include <curand_kernel.h>
+
 
 #define COMPONENT_COUNT 5
 using namespace std;
@@ -411,10 +414,97 @@ void kmeans(pixel_t *pixels, int num_pixels, int k, int num_clusters, int max_it
     free(counts);
 }
 
-__global__ void kmeans_gpu(pixel_t *pixels, int num_pixels, int num_clusters, int max_iters, int *labels)
+__global__ void kmeans_gpu(pixel_t *pixels, int num_pixels, int num_clusters, int max_iters, int *labels, Centroid* centroids, Centroid* new_centroids, int *counts)
 {
     __shared__ float buffer[256];
+       // cout << "number of threads: " << blockDim.x << endl;
     int id = threadIdx.x; //and/or y
+    
+    // curand_init(1234, id, 0, 0); // Initialize the random number generator
+
+    int numPixelsPerThread = num_pixels / blockDim.x;
+
+    printf("num pixels per thread: %d and counts: %ld\n", numPixelsPerThread, counts[0]);
+
+    //initialize clusters to random values
+    if (id < num_clusters)
+    {
+        // int idx = curand_kernel() % num_pixels;
+
+        int idx = 5;
+        
+        centroids[id].r = pixels[idx].r;
+        centroids[id].g = pixels[idx].g;
+        centroids[id].b = pixels[idx].b;
+    }
+
+    for (int iter = 0; iter < max_iters; ++iter)
+    {
+    //     // Reset accumulators
+        if (id < num_clusters)
+        {
+            new_centroids[id].r = 0;
+            new_centroids[id].g = 0;
+            new_centroids[id].b = 0;
+            counts[id] = 0;
+        }
+
+        __syncthreads();
+
+    //     // Assign labels based on nearest centroid
+    //     for (int i = 0; i < num_pixels; ++i)
+    //     {
+    //         float min_dist = INFINITY;
+    //         int label = 0;
+    //         for (int j = 0; j < num_clusters; ++j)
+    //         {
+    //             float dist = distance_squared(pixels[i], centroids[j]);
+    //             if (dist < min_dist)
+    //             {
+    //                 min_dist = dist;
+    //                 label = j;
+    //             }
+    //         }
+    //         labels[i] = label;
+    //         new_centroids[label].r += pixels[i].r;
+    //         new_centroids[label].g += pixels[i].g;
+    //         new_centroids[label].b += pixels[i].b;
+    //         counts[label]++;
+    //     }
+
+    //     // Update centroids
+        int converged = 1;
+        if (id < num_clusters)
+        {
+            if (counts[id] == 0)
+                continue; // avoid division by zero
+
+            Centroid updated = {
+                new_centroids[id].r / counts[id],
+                new_centroids[id].g / counts[id],
+                new_centroids[id].b / counts[id]};
+
+            // Check if centroid has changed significantly
+            // pixel_t estimate_center = {(uint8_t)centroids[i].r, (uint8_t)centroids[i].g, (uint8_t)centroids[i].b};
+            // float shift = distance_squared(estimate_center, updated);
+            
+            float shift = 
+                (centroids[id].r - updated.r) * (centroids[id].r - updated.r) +
+                (centroids[id].g - updated.g) * (centroids[id].g - updated.g) +
+                (centroids[id].b - updated.b) * (centroids[id].b - updated.b);
+
+            if (shift > 1e-4f)
+            {
+                converged = 0;
+            }
+
+            centroids[id] = updated;
+        }
+
+    //     if (converged)
+    //         break;
+    __syncthreads();
+    }
 }
 
 
@@ -425,9 +515,10 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
 {
     int kMeansItCount = 10;
     int k = 5;
+    double st_f, st_b, et_f, et_b;
     // cout << "in init gmms\n";
 
-    //Mem allocation
+    
     std::vector<pixel_t> bgdSamples;
     std::vector<pixel_t> fgdSamples;
     for (int r = 0; r < img->rows; r++)
@@ -445,11 +536,11 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
     cout << "bgd samples size: " << bgdSamples.size() << "\n";
     cout << "fgd samples size: " << fgdSamples.size() << "\n";
     
+    //Mem allocation
     //Malloc: centroids, new_centroids, counts, bgdLabels, fgdLabels, bgdSamples, fgdSamples - but need to populate them too, so memCpy?
     // Centroid *centroids = (Centroid *)malloc(num_clusters * sizeof(Centroid));
     // Centroid *new_centroids = (Centroid *)malloc(num_clusters * sizeof(Centroid));
     // int *counts = (int *)malloc(num_clusters * sizeof(int));
-    
     int *bgdLabels = (int*)malloc(img->rows * img->cols * sizeof(int));
     int *fgdLabels = (int*)malloc(img->rows * img->cols * sizeof(int));
     // cout << "first for loop\n";
@@ -467,19 +558,48 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
         
         int num_clusters = COMPONENT_COUNT;
         num_clusters = std::min(num_clusters, (int)bgdSamples.size());
-        kmeans_gpu<<<1, 256, 0, streams[0]>>>(bgdSamples.data(), bgdSamples.size(), num_clusters, kMeansItCount,
-        bgdLabels);
         
+    
+        Centroid *centroids; // = (Centroid *)malloc(num_clusters * sizeof(Centroid)); //in kmeans
+        Centroid *new_centroids; // = (Centroid *)malloc(num_clusters * sizeof(Centroid)); //in kmeans
+        int *counts; // = (int *)malloc(num_clusters * sizeof(int)); //in kmeans
+        int *dev_bgdLabels, *dev_fgdLabels;
+        
+        pixel_t *dev_bgdSamples, *dev_fgdSamples;
+        int bdg_samp_size = (int)bgdSamples.size();
+        int fgd_samp_size = (int)fgdSamples.size();
+        
+        cudaMalloc(&dev_bgdLabels, sizeof(int)*(img->rows * img->cols));
+        cudaMalloc(&dev_fgdLabels, sizeof(int)*(img->rows * img->cols));
+
+        cudaMalloc((void**) &dev_bgdSamples, bdg_samp_size * sizeof(pixel_t));
+        cudaMalloc((void**) &dev_fgdSamples, fgd_samp_size * sizeof(pixel_t));
+
+        cudaMalloc((void**) &centroids, num_clusters * sizeof(Centroid));
+        cudaMalloc((void**) &new_centroids, num_clusters * sizeof(Centroid));
+        cudaMalloc((void**) &counts, num_clusters * sizeof(int));
+
+        kmeans_gpu<<<1, 256, 0, streams[0]>>>(dev_bgdSamples, bdg_samp_size, num_clusters, kMeansItCount,
+        dev_bgdLabels, centroids, new_centroids, counts);
+
+        st_b = omp_get_wtime();
         kmeans(bgdSamples.data(), bgdSamples.size(), k, num_clusters, kMeansItCount,
                bgdLabels);
+        et_b = omp_get_wtime();
+        cout<< "kmeans bgd time: " << et_b - st_b << "\n";
     }
 
     {
         int num_clusters = COMPONENT_COUNT;
         num_clusters = std::min(num_clusters, (int)fgdSamples.size());
+        st_f = omp_get_wtime();
         kmeans(fgdSamples.data(), fgdSamples.size(), k, num_clusters, kMeansItCount,
                fgdLabels);
+        et_f = omp_get_wtime();
+        cout<< "kmeans fgd time: " << et_f - st_f << "\n";
     }
+
+    // cout << "done with kmeans?\n";
 
     // cout << "done with kmeans?\n";
 
