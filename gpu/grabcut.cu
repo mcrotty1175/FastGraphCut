@@ -417,21 +417,39 @@ void kmeans(pixel_t *pixels, int num_pixels, int k, int num_clusters, int max_it
 __global__ void kmeans_gpu(pixel_t *pixels, int num_pixels, int num_clusters, int max_iters, int *labels, Centroid* centroids, Centroid* new_centroids, int *counts)
 {
     __shared__ float buffer[256];
-       // cout << "number of threads: " << blockDim.x << endl;
-    int id = threadIdx.x; //and/or y
+    // cout << "number of threads: " << blockDim.x << endl;
+    //CAN JUST DO IF THREADID = 0 or smthg
+
+    /*
+    Want to eventually split up the image across thread blocks (and thus across shared memory buffers)
+    so need to use blockIdx for thread block to image chunk mapping 
+    so ultimately shove a tile of the image into a specific TB's shared memory
+    bunch of shared mem buffers containing image tiles that each thread block works on
     
-    // curand_init(1234, id, 0, 0); // Initialize the random number generator
+    Could alternatively launch multiple kernels with (kernel per image tile and 1 TB per kernel
+    and stream them all???
+    */
+    int id = threadIdx.x; //and/or y
+
+    /* 
+    dont know if we actually want to do curand this once we figure out
+    how to spread out image in memory on GPU?
+    */
+    //but want to make sure that only one thread does this?
+    curandState state;
+    curand_init(1234, id, 0, &state); // Initialize the random number generator
 
     int numPixelsPerThread = num_pixels / blockDim.x;
 
-    printf("num pixels per thread: %d and counts: %ld\n", numPixelsPerThread, counts[0]);
+    // printf("num pixels per thread: %d and counts: %ld\n", numPixelsPerThread, counts[0]);
 
     //initialize clusters to random values
     if (id < num_clusters)
     {
-        // int idx = curand_kernel() % num_pixels;
+        int idx = curand(&state) % num_pixels;
+        printf("random int: %d\n", idx);
 
-        int idx = 5;
+        //int idx = 5; //this was to get it to compile without rand
         
         centroids[id].r = pixels[idx].r;
         centroids[id].g = pixels[idx].g;
@@ -513,6 +531,8 @@ __global__ void kmeans_gpu(pixel_t *pixels, int num_pixels, int num_clusters, in
 */
 static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
 {
+
+    //More realistically, we should only definitely put the kmean's num_pixels for loop in the kernel, not entire kmeans algorithm
     int kMeansItCount = 10;
     int k = 5;
     double st_f, st_b, et_f, et_b;
@@ -537,25 +557,19 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
     cout << "fgd samples size: " << fgdSamples.size() << "\n";
     
     //Mem allocation
-    //Malloc: centroids, new_centroids, counts, bgdLabels, fgdLabels, bgdSamples, fgdSamples - but need to populate them too, so memCpy?
-    // Centroid *centroids = (Centroid *)malloc(num_clusters * sizeof(Centroid));
-    // Centroid *new_centroids = (Centroid *)malloc(num_clusters * sizeof(Centroid));
-    // int *counts = (int *)malloc(num_clusters * sizeof(int));
     int *bgdLabels = (int*)malloc(img->rows * img->cols * sizeof(int));
     int *fgdLabels = (int*)malloc(img->rows * img->cols * sizeof(int));
     // cout << "first for loop\n";
 
-    // replace with kmeans
     int num_streams = 2;
     cudaStream_t streams[num_streams];   
  
     for (int i = 0; i < num_streams; ++i)
-        {
+    {
         cudaStreamCreateWithFlags(&streams[i], cudaStreamNonBlocking);
     }
 
-    {
-        
+    {        
         int num_clusters = COMPONENT_COUNT;
         num_clusters = std::min(num_clusters, (int)bgdSamples.size());
         
@@ -579,8 +593,28 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
         cudaMalloc((void**) &new_centroids, num_clusters * sizeof(Centroid));
         cudaMalloc((void**) &counts, num_clusters * sizeof(int));
 
+        //Array of random integers (pixel cluster locations) for both bgd and fgd samples
+        int *bgd_rand_ints = (int*)malloc(num_clusters* sizeof(int));
+        int *fgd_rand_ints = (int*)malloc(num_clusters* sizeof(int));
+
+        for (int i = 0; i < 5; i++) {
+            bgd_rand_ints[i] = rand() % bdg_samp_size;
+            fgd_rand_ints[i] = rand() % fgd_samp_size;
+        } //would then need to copy this to device memory and include as argument in kmeans_gpu kernel call
+        
+
+        //THESE CUDA MEMCPYS arent part of the timing, right??
+        cudaMemcpy(dev_bgdSamples, bgdSamples.data(), bdg_samp_size * sizeof(pixel_t), cudaMemcpyHostToDevice);
+        cudaMemcpy(dev_fgdSamples, fgdSamples.data(), fgd_samp_size * sizeof(pixel_t), cudaMemcpyHostToDevice);
+
+
         kmeans_gpu<<<1, 256, 0, streams[0]>>>(dev_bgdSamples, bdg_samp_size, num_clusters, kMeansItCount,
         dev_bgdLabels, centroids, new_centroids, counts);
+        
+        cudaMemcpy(bgdLabels, dev_bgdLabels, sizeof(int)*(img->rows * img->cols), cudaMemcpyDeviceToHost);
+        cudaMemcpy(bgdSamples.data(), dev_bgdSamples, bdg_samp_size * sizeof(pixel_t), cudaMemcpyDeviceToHost);
+
+              
 
         st_b = omp_get_wtime();
         kmeans(bgdSamples.data(), bgdSamples.size(), k, num_clusters, kMeansItCount,
@@ -598,8 +632,6 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
         et_f = omp_get_wtime();
         cout<< "kmeans fgd time: " << et_f - st_f << "\n";
     }
-
-    // cout << "done with kmeans?\n";
 
     // cout << "done with kmeans?\n";
 
@@ -828,9 +860,9 @@ void grabCut(image_t *img, rect_t rect, image_t *foreground, image_t *background
     int *compIdxs = (int *)malloc(num_pixels * sizeof(int));
 
     initMaskWithRect(mask, rect, img);
-    gettingOutput(img, mask, foreground, background);
-    displayImage(foreground);
-    displayImage(background);
+    //gettingOutput(img, mask, foreground, background);
+    //displayImage(foreground);
+    //displayImage(background);
     // cout << "After init mask with rect\n";
     initGMMs(img, mask, bgdGMM, fgdGMM);
     // cout << "init gmms again\n";
