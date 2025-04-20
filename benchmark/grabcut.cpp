@@ -443,17 +443,6 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
     int *fgdLabels = (int*)malloc(img->rows * img->cols * sizeof(int));
     // cout << "first for loop\n";
 
-    // replace with kmeans kernel - maybe use streams?
-
-    {
-        int num_clusters = COMPONENT_COUNT;
-        num_clusters = std::min(num_clusters, (int)bgdSamples.size());
-        st_b = omp_get_wtime();
-        kmeans(bgdSamples.data(), bgdSamples.size(), k, num_clusters, kMeansItCount,
-               bgdLabels);
-        et_b = omp_get_wtime();
-        cout<< "kmeans bgd time: " << et_b - st_b << "\n";
-    }
     /*
     cuda_add_executable(FastGrabCut gpu/grabcut.cu )
     target_link_libraries(FastGrabCut
@@ -474,6 +463,17 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
 
 
     */
+
+    {
+        int num_clusters = COMPONENT_COUNT;
+        num_clusters = std::min(num_clusters, (int)bgdSamples.size());
+        st_b = omp_get_wtime();
+        kmeans(bgdSamples.data(), bgdSamples.size(), k, num_clusters, kMeansItCount,
+               bgdLabels);
+        et_b = omp_get_wtime();
+        cout<< "kmeans bgd time: " << et_b - st_b << "\n";
+    }
+    
 
     {
         int num_clusters = COMPONENT_COUNT;
