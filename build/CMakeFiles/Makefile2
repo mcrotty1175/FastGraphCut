@@ -54,10 +54,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /afs/andrew.cmu.edu/usr15/abatrach/private/18646/project/FastGraphCut
+CMAKE_SOURCE_DIR = /afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /afs/andrew.cmu.edu/usr15/abatrach/private/18646/project/FastGraphCut/build
+CMAKE_BINARY_DIR = /afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/build
 
 #=============================================================================
 # Directory level rules for the build root directory
@@ -83,14 +83,14 @@ clean: CMakeFiles/FastGrabCut.dir/clean
 CMakeFiles/SlowGrabCut.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/SlowGrabCut.dir/build.make CMakeFiles/SlowGrabCut.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/SlowGrabCut.dir/build.make CMakeFiles/SlowGrabCut.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/afs/andrew.cmu.edu/usr15/abatrach/private/18646/project/FastGraphCut/build/CMakeFiles --progress-num=3,4 "Built target SlowGrabCut"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/build/CMakeFiles --progress-num=3,4 "Built target SlowGrabCut"
 .PHONY : CMakeFiles/SlowGrabCut.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/SlowGrabCut.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /afs/andrew.cmu.edu/usr15/abatrach/private/18646/project/FastGraphCut/build/CMakeFiles 2
+	$(CMAKE_COMMAND) -E cmake_progress_start /afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/build/CMakeFiles 2
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/SlowGrabCut.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /afs/andrew.cmu.edu/usr15/abatrach/private/18646/project/FastGraphCut/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/build/CMakeFiles 0
 .PHONY : CMakeFiles/SlowGrabCut.dir/rule
 
 # Convenience name for target.
@@ -109,14 +109,14 @@ CMakeFiles/SlowGrabCut.dir/clean:
 CMakeFiles/FastGrabCut.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FastGrabCut.dir/build.make CMakeFiles/FastGrabCut.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FastGrabCut.dir/build.make CMakeFiles/FastGrabCut.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/afs/andrew.cmu.edu/usr15/abatrach/private/18646/project/FastGraphCut/build/CMakeFiles --progress-num=1,2 "Built target FastGrabCut"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/build/CMakeFiles --progress-num=1,2 "Built target FastGrabCut"
 .PHONY : CMakeFiles/FastGrabCut.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/FastGrabCut.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /afs/andrew.cmu.edu/usr15/abatrach/private/18646/project/FastGraphCut/build/CMakeFiles 2
+	$(CMAKE_COMMAND) -E cmake_progress_start /afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/build/CMakeFiles 2
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/FastGrabCut.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /afs/andrew.cmu.edu/usr15/abatrach/private/18646/project/FastGraphCut/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/build/CMakeFiles 0
 .PHONY : CMakeFiles/FastGrabCut.dir/rule
 
 # Convenience name for target.

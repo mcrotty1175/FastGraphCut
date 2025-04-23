@@ -53,10 +53,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /afs/andrew.cmu.edu/usr15/abatrach/private/18646/project/FastGraphCut
+CMAKE_SOURCE_DIR = /afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /afs/andrew.cmu.edu/usr15/abatrach/private/18646/project/FastGraphCut/build
+CMAKE_BINARY_DIR = /afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/build
 
 # Include any dependencies generated for this target.
 include CMakeFiles/SlowGrabCut.dir/depend.make
@@ -70,18 +70,18 @@ include CMakeFiles/SlowGrabCut.dir/progress.make
 include CMakeFiles/SlowGrabCut.dir/flags.make
 
 CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.o: CMakeFiles/SlowGrabCut.dir/flags.make
-CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.o: /afs/andrew.cmu.edu/usr15/abatrach/private/18646/project/FastGraphCut/benchmark/grabcut.cpp
+CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.o: /afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/benchmark/grabcut.cpp
 CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.o: CMakeFiles/SlowGrabCut.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/afs/andrew.cmu.edu/usr15/abatrach/private/18646/project/FastGraphCut/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.o -MF CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.o.d -o CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.o -c /afs/andrew.cmu.edu/usr15/abatrach/private/18646/project/FastGraphCut/benchmark/grabcut.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.o"
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.o -MF CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.o.d -o CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.o -c /afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/benchmark/grabcut.cpp
 
 CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /afs/andrew.cmu.edu/usr15/abatrach/private/18646/project/FastGraphCut/benchmark/grabcut.cpp > CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.i
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/benchmark/grabcut.cpp > CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.i
 
 CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /afs/andrew.cmu.edu/usr15/abatrach/private/18646/project/FastGraphCut/benchmark/grabcut.cpp -o CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.s
+	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/benchmark/grabcut.cpp -o CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.s
 
 # Object files for target SlowGrabCut
 SlowGrabCut_OBJECTS = \
@@ -92,23 +92,23 @@ SlowGrabCut_EXTERNAL_OBJECTS =
 
 SlowGrabCut: CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.o
 SlowGrabCut: CMakeFiles/SlowGrabCut.dir/build.make
-SlowGrabCut: /afs/ece.cmu.edu/usr/abatrach/Private/build/lib/libopencv_gapi.so.4.12.0
-SlowGrabCut: /afs/ece.cmu.edu/usr/abatrach/Private/build/lib/libopencv_highgui.so.4.12.0
-SlowGrabCut: /afs/ece.cmu.edu/usr/abatrach/Private/build/lib/libopencv_ml.so.4.12.0
-SlowGrabCut: /afs/ece.cmu.edu/usr/abatrach/Private/build/lib/libopencv_objdetect.so.4.12.0
-SlowGrabCut: /afs/ece.cmu.edu/usr/abatrach/Private/build/lib/libopencv_photo.so.4.12.0
-SlowGrabCut: /afs/ece.cmu.edu/usr/abatrach/Private/build/lib/libopencv_stitching.so.4.12.0
-SlowGrabCut: /afs/ece.cmu.edu/usr/abatrach/Private/build/lib/libopencv_video.so.4.12.0
-SlowGrabCut: /afs/ece.cmu.edu/usr/abatrach/Private/build/lib/libopencv_videoio.so.4.12.0
-SlowGrabCut: /afs/ece.cmu.edu/usr/abatrach/Private/build/lib/libopencv_imgcodecs.so.4.12.0
-SlowGrabCut: /afs/ece.cmu.edu/usr/abatrach/Private/build/lib/libopencv_dnn.so.4.12.0
-SlowGrabCut: /afs/ece.cmu.edu/usr/abatrach/Private/build/lib/libopencv_calib3d.so.4.12.0
-SlowGrabCut: /afs/ece.cmu.edu/usr/abatrach/Private/build/lib/libopencv_features2d.so.4.12.0
-SlowGrabCut: /afs/ece.cmu.edu/usr/abatrach/Private/build/lib/libopencv_flann.so.4.12.0
-SlowGrabCut: /afs/ece.cmu.edu/usr/abatrach/Private/build/lib/libopencv_imgproc.so.4.12.0
-SlowGrabCut: /afs/ece.cmu.edu/usr/abatrach/Private/build/lib/libopencv_core.so.4.12.0
+SlowGrabCut: /afs/ece.cmu.edu/usr/shivig/Private/build/lib/libopencv_gapi.so.4.12.0
+SlowGrabCut: /afs/ece.cmu.edu/usr/shivig/Private/build/lib/libopencv_highgui.so.4.12.0
+SlowGrabCut: /afs/ece.cmu.edu/usr/shivig/Private/build/lib/libopencv_ml.so.4.12.0
+SlowGrabCut: /afs/ece.cmu.edu/usr/shivig/Private/build/lib/libopencv_objdetect.so.4.12.0
+SlowGrabCut: /afs/ece.cmu.edu/usr/shivig/Private/build/lib/libopencv_photo.so.4.12.0
+SlowGrabCut: /afs/ece.cmu.edu/usr/shivig/Private/build/lib/libopencv_stitching.so.4.12.0
+SlowGrabCut: /afs/ece.cmu.edu/usr/shivig/Private/build/lib/libopencv_video.so.4.12.0
+SlowGrabCut: /afs/ece.cmu.edu/usr/shivig/Private/build/lib/libopencv_videoio.so.4.12.0
+SlowGrabCut: /afs/ece.cmu.edu/usr/shivig/Private/build/lib/libopencv_imgcodecs.so.4.12.0
+SlowGrabCut: /afs/ece.cmu.edu/usr/shivig/Private/build/lib/libopencv_dnn.so.4.12.0
+SlowGrabCut: /afs/ece.cmu.edu/usr/shivig/Private/build/lib/libopencv_calib3d.so.4.12.0
+SlowGrabCut: /afs/ece.cmu.edu/usr/shivig/Private/build/lib/libopencv_features2d.so.4.12.0
+SlowGrabCut: /afs/ece.cmu.edu/usr/shivig/Private/build/lib/libopencv_flann.so.4.12.0
+SlowGrabCut: /afs/ece.cmu.edu/usr/shivig/Private/build/lib/libopencv_imgproc.so.4.12.0
+SlowGrabCut: /afs/ece.cmu.edu/usr/shivig/Private/build/lib/libopencv_core.so.4.12.0
 SlowGrabCut: CMakeFiles/SlowGrabCut.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/afs/andrew.cmu.edu/usr15/abatrach/private/18646/project/FastGraphCut/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable SlowGrabCut"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable SlowGrabCut"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/SlowGrabCut.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -120,6 +120,6 @@ CMakeFiles/SlowGrabCut.dir/clean:
 .PHONY : CMakeFiles/SlowGrabCut.dir/clean
 
 CMakeFiles/SlowGrabCut.dir/depend:
-	cd /afs/andrew.cmu.edu/usr15/abatrach/private/18646/project/FastGraphCut/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /afs/andrew.cmu.edu/usr15/abatrach/private/18646/project/FastGraphCut /afs/andrew.cmu.edu/usr15/abatrach/private/18646/project/FastGraphCut /afs/andrew.cmu.edu/usr15/abatrach/private/18646/project/FastGraphCut/build /afs/andrew.cmu.edu/usr15/abatrach/private/18646/project/FastGraphCut/build /afs/andrew.cmu.edu/usr15/abatrach/private/18646/project/FastGraphCut/build/CMakeFiles/SlowGrabCut.dir/DependInfo.cmake --color=$(COLOR)
+	cd /afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut /afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut /afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/build /afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/build /afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/build/CMakeFiles/SlowGrabCut.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/SlowGrabCut.dir/depend
 
