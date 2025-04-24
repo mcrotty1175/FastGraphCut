@@ -550,7 +550,6 @@ __global__ void kmeans_gpu(
         }
 
     //     if (converged)
-    //         break;
     __syncthreads();*/
     } 
 }
@@ -569,117 +568,171 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
     // cout << "in init gmms\n";
 
     
-    std::vector<pixel_t> bgdSamples;
-    std::vector<pixel_t> fgdSamples;
+    //std::vector<pixel_t> bgdSamples;
+    //std::vector<pixel_t> fgdSamples;
+
+    std::vector<uint8_t> bgdR, bgdG, bgdB;
+    std::vector<uint8_t> fgdR, fgdG, fgdB;
+
     for (int r = 0; r < img->rows; r++)
     {
         for (int c = 0; c < img->cols; c++)
         {
             MaskVal m = mask_at(mask, r, c);
-            if (m == GC_BGD || m == GC_PR_BGD)
-                bgdSamples.push_back(*img_at(img, r, c));
-            else // GC_FGD | GC_PR_FGD
-                fgdSamples.push_back(*img_at(img, r, c));
+            if (m == GC_BGD || m == GC_PR_BGD) {
+                bgdR.push_back(get_r(img, r, c));
+                bgdG.push_back(get_g(img, r, c));
+                bgdB.push_back(get_b(img, r, c));
+                //bgdSamples.push_back(*img_at(img, r, c));
+            }
+
+            // GC_FGD | GC_PR_FGD 
+            else {
+                fgdR.push_back(get_r(img, r, c));
+                fgdG.push_back(get_g(img, r, c));
+                fgdB.push_back(get_b(img, r, c));
+                //fgdSamples.push_back(*img_at(img, r, c));
+            }
         }
     }
     // cout << "before kmeans\n";
     // cout << "bgd samples size: " << bgdSamples.size() << "\n";
     // cout << "fgd samples size: " << fgdSamples.size() << "\n";
+
+    int bdg_size = bgdR.size();
+    int fgd_size = fgdR.size();
     
     //Mem allocation
-    int *bgdLabels = (int*)malloc(img->rows * img->cols * sizeof(int));
-    int *fgdLabels = (int*)malloc(img->rows * img->cols * sizeof(int));
+    //int *bgdLabels = (int*)malloc(img->rows * img->cols * sizeof(int));
+    //int *fgdLabels = (int*)malloc(img->rows * img->cols * sizeof(int));
+    int *bgdLabels = (int*)malloc(bdg_size * sizeof(int));
+    int *fgdLabels = (int*)malloc(fgd_size * sizeof(int));
     // cout << "first for loop\n";
 
     int num_streams = 2;
     cudaStream_t streams[num_streams];   
  
-    for (int i = 0; i < num_streams; ++i)
-    {
+    for (int i = 0; i < num_streams; ++i) {
         cudaStreamCreateWithFlags(&streams[i], cudaStreamNonBlocking);
     }
 
     {        
-        int num_clusters = COMPONENT_COUNT;
-        num_clusters = std::min(num_clusters, (int)bgdSamples.size());
+        int num_clusters = std::min(COMPONENT_COUNT, bdg_size);
         
-    
+        uint8_t *d_bgdR, *d_bgdG, *d_bgdB;
+        cudaMalloc((void**)&d_bgdR, bdg_size * sizeof(uint8_t));
+        cudaMalloc((void**)&d_bgdG, bdg_size * sizeof(uint8_t));
+        cudaMalloc((void**)&d_bgdB, bdg_size * sizeof(uint8_t));
+
+        cudaMemcpy(d_bgdR, bgdR.data(), bdg_size * sizeof(uint8_t), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_bgdG, bgdG.data(), bdg_size * sizeof(uint8_t), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_bgdB, bgdB.data(), bdg_size * sizeof(uint8_t), cudaMemcpyHostToDevice);
+
         Centroid *centroids; // = (Centroid *)malloc(num_clusters * sizeof(Centroid)); //in kmeans
         Centroid *new_centroids; // = (Centroid *)malloc(num_clusters * sizeof(Centroid)); //in kmeans
         int *counts; // = (int *)malloc(num_clusters * sizeof(int)); //in kmeans
         int *dev_bgdLabels, *dev_fgdLabels;
+
+        cudaMalloc((void**)&centroids, num_clusters * sizeof(Centroid));
+        cudaMalloc((void**)&new_centroids, num_clusters * sizeof(Centroid));
+        cudaMalloc((void**)&counts, num_clusters * sizeof(int));
+        cudaMalloc((void**)&dev_bgdLabels, bdg_size * sizeof(int));
+
+
         
         pixel_t *dev_bgdSamples, *dev_fgdSamples;
         int bdg_samp_size = (int)bgdSamples.size();
         int fgd_samp_size = (int)fgdSamples.size();
         
-        cudaMalloc(&dev_bgdLabels, sizeof(int)*(img->rows * img->cols));
-        cudaMalloc(&dev_fgdLabels, sizeof(int)*(img->rows * img->cols));
+        //cudaMalloc(&dev_bgdLabels, sizeof(int)*(img->rows * img->cols));
+        //cudaMalloc(&dev_fgdLabels, sizeof(int)*(img->rows * img->cols));
 
-        cudaMalloc((void**) &dev_bgdSamples, bdg_samp_size * sizeof(pixel_t));
-        cudaMalloc((void**) &dev_fgdSamples, fgd_samp_size * sizeof(pixel_t));
+        //cudaMalloc((void**) &dev_bgdSamples, bdg_samp_size * sizeof(pixel_t));
+        //cudaMalloc((void**) &dev_fgdSamples, fgd_samp_size * sizeof(pixel_t));
 
-        cudaMalloc((void**) &centroids, num_clusters * sizeof(Centroid));
-        cudaMalloc((void**) &new_centroids, num_clusters * sizeof(Centroid));
-        cudaMalloc((void**) &counts, num_clusters * sizeof(int));
+        //cudaMalloc((void**) &centroids, num_clusters * sizeof(Centroid));
+        //cudaMalloc((void**) &new_centroids, num_clusters * sizeof(Centroid));
+        //cudaMalloc((void**) &counts, num_clusters * sizeof(int));
 
         //Array of random integers (pixel cluster locations) for both bgd and fgd samples
-        int *bgd_rand_ints = (int*)malloc(num_clusters* sizeof(int));
-        int *fgd_rand_ints = (int*)malloc(num_clusters* sizeof(int));
+        //int *bgd_rand_ints = (int*)malloc(num_clusters* sizeof(int));
+        //int *fgd_rand_ints = (int*)malloc(num_clusters* sizeof(int));
 
+        /*
         for (int i = 0; i < 5; i++) {
             bgd_rand_ints[i] = rand() % bdg_samp_size;
             fgd_rand_ints[i] = rand() % fgd_samp_size;
         } //would then need to copy this to device memory and include as argument in kmeans_gpu kernel call
-        
+        */
 
         //THESE CUDA MEMCPYS arent part of the timing, right??
-        cudaMemcpy(dev_bgdSamples, bgdSamples.data(), bdg_samp_size * sizeof(pixel_t), cudaMemcpyHostToDevice);
-        cudaMemcpy(dev_fgdSamples, fgdSamples.data(), fgd_samp_size * sizeof(pixel_t), cudaMemcpyHostToDevice);
+        //cudaMemcpy(dev_bgdSamples, bgdSamples.data(), bdg_samp_size * sizeof(pixel_t), cudaMemcpyHostToDevice);
+        //cudaMemcpy(dev_fgdSamples, fgdSamples.data(), fgd_samp_size * sizeof(pixel_t), cudaMemcpyHostToDevice);
 
+        kmeans_gpu<<<1, 256, 0, streams[0]>>>(d_bgdR, d_bgdG, d_bgdB, bdg_size,
+        centroids, new_centroids, counts, dev_bgdLabels, num_clusters, kMeansItCount);
 
-        kmeans_gpu<<<1, 256, 0, streams[0]>>>(dev_bgdSamples, bdg_samp_size, num_clusters, kMeansItCount,
-        dev_bgdLabels, centroids, new_centroids, counts);
+        //kmeans_gpu<<<1, 256, 0, streams[0]>>>(dev_bgdSamples, bdg_samp_size, num_clusters, kMeansItCount,
+        //dev_bgdLabels, centroids, new_centroids, counts);
         
-        cudaMemcpy(bgdLabels, dev_bgdLabels, sizeof(int)*(img->rows * img->cols), cudaMemcpyDeviceToHost);
-        cudaMemcpy(bgdSamples.data(), dev_bgdSamples, bdg_samp_size * sizeof(pixel_t), cudaMemcpyDeviceToHost);
+        cudaMemcpy(bgdLabels, dev_bgdLabels, bdg_size * sizeof(int), cudaMemcpyDeviceToHost);
+        //cudaMemcpy(bgdLabels, dev_bgdLabels, sizeof(int)*(img->rows * img->cols), cudaMemcpyDeviceToHost);
+        //cudaMemcpy(bgdSamples.data(), dev_bgdSamples, bdg_samp_size * sizeof(pixel_t), cudaMemcpyDeviceToHost);
 
               
 
-        st_b = omp_get_wtime();
-        kmeans_gpu<<<1, 256, 0, streams[0]>>>(dev_bgdSamples, bdg_samp_size, num_clusters, kMeansItCount,
-        dev_bgdLabels, centroids, new_centroids, counts);
+        //st_b = omp_get_wtime();
+        //kmeans_gpu<<<1, 256, 0, streams[0]>>>(dev_bgdSamples, bdg_samp_size, num_clusters, kMeansItCount,
+        //dev_bgdLabels, centroids, new_centroids, counts);
         
         //kmeans(bgdSamples.data(), bgdSamples.size(), k, num_clusters, kMeansItCount,
         //       bgdLabels);
-        et_b = omp_get_wtime();
-        cout<< "kmeans bgd time: " << et_b - st_b << "\n";
+        //et_b = omp_get_wtime();
+        //cout<< "kmeans bgd time: " << et_b - st_b << "\n";
     }
 
     {
-        int num_clusters = COMPONENT_COUNT;
-        num_clusters = std::min(num_clusters, (int)fgdSamples.size());
-        st_f = omp_get_wtime();
-        kmeans(fgdSamples.data(), fgdSamples.size(), k, num_clusters, kMeansItCount,
-               fgdLabels);
-        et_f = omp_get_wtime();
-        cout<< "kmeans fgd time: " << et_f - st_f << "\n";
+        int num_clusters = std::min(COMPONENT_COUNT, fgd_size);
+
+        uint8_t *d_fgdR, *d_fgdG, *d_fgdB;
+        cudaMalloc((void**)&d_fgdR, fgd_size * sizeof(uint8_t));
+        cudaMalloc((void**)&d_fgdG, fgd_size * sizeof(uint8_t));
+        cudaMalloc((void**)&d_fgdB, fgd_size * sizeof(uint8_t));
+
+        cudaMemcpy(d_fgdR, fgdR.data(), fgd_size * sizeof(uint8_t), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_fgdG, fgdG.data(), fgd_size * sizeof(uint8_t), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_fgdB, fgdB.data(), fgd_size * sizeof(uint8_t), cudaMemcpyHostToDevice);
+
+        cudaMalloc((void**)&dev_fgdLabels, fgd_size * sizeof(int));
+
+
+
+        //st_f = omp_get_wtime();
+        kmeans_gpu<<<1, 256, 0, streams[1]>>>(d_fgdR, d_fgdG, d_fgdB, fgd_size,
+            centroids, new_centroids, counts, dev_fgdLabels, num_clusters, kMeansItCount);
+
+        cudaMemcpy(fgdLabels, dev_fgdLabels, fgd_size * sizeof(int), cudaMemcpyDeviceToHost);
+
+        //et_f = omp_get_wtime();
+        //cout<< "kmeans fgd time: " << et_f - st_f << "\n";
     }
 
     // cout << "done with kmeans?\n";
 
     // can use streams? one for fg and one for bg
     initLearning(bgdGMM);
-    for (int i = 0; i < (int)bgdSamples.size(); i++)
-    {
-        addSample(bgdGMM, bgdLabels[i], bgdSamples[i]);
+    for (int i = 0; i < (int)bgdSamples.size(); i++) {
+        pixel_t px = { bgdR[i], bgdG[i], bgdB[i] };
+        addSample(bgdGMM, bgdLabels[i], px);
     }
     //std::cout << "BGD GMM means weights after initGMMs" << std::endl;
     endLearning(bgdGMM);
 
     initLearning(fgdGMM);
-    for (int i = 0; i < (int)fgdSamples.size(); i++)
-        addSample(fgdGMM, fgdLabels[i], fgdSamples[i]);
+    for (int i = 0; i < (int)fgdSamples.size(); i++) {
+        pixel_t px = { fgdR[i], fgdG[i], fgdB[i] };
+        addSample(fgdGMM, fgdLabels[i], px);
+    }
     //std::cout << "FGD GMM means weights after initGMMs" << std::endl;
     endLearning(fgdGMM);
 }
