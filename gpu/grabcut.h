@@ -106,12 +106,13 @@ typedef struct {
     float r, g, b;
 } Centroid;
 
+/*
 float distance_squared(uint8_t r, uint8_t g, uint8_t b, float cr, float cg, float cb) {
     float dr = r - cr;
     float dg = g - cg;
     float db = b - cb;
     return dr * dr + dg * dg + db * db;
-}
+} */
 
 void grabCut(pixel_t *img);
 

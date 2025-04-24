@@ -474,7 +474,8 @@ __global__ void kmeans_gpu(
 
         for (int j = 0; j < num_clusters; ++j)
         {
-            float dist = distance_squared(ri, gi, bi, centroids[j].r, centroids[j].g, centroids[j].b);
+            float dist = (ri - centroids[j].r) * (ri - centroids[j].r) + (gi - centroids[j].g)*(gi - centroids[j].g) + (bi - centroids[j].b)*(bi - centroids[j].b);
+            //distance_squared(ri, gi, bi, centroids[j].r, centroids[j].g, centroids[j].b);
             if (dist < min_dist)
             {
                 min_dist = dist;
