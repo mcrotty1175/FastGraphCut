@@ -777,15 +777,23 @@ static void learnGMMs(image_t *img, mask_t *mask, int *compIdxs, GMM_t *bgdGMM, 
                 {
                     MaskVal m = mask_at(mask, r, c);
                     if (iter == 0) {
-                        if (m == GC_BGD || m == GC_PR_BGD)
-                            addSample(bgdGMM, ci, *img_at(img, r, c));
-                        else if (m == GC_FGD || m == GC_PR_FGD)
-                            addSample(fgdGMM, ci, *img_at(img, r, c));
+                        if (m == GC_BGD || m == GC_PR_BGD) {
+                            pixel_t color = { get_r(img, r, c), get_g(img, r, c), get_b(img, r, c) };
+                            addSample(bgdGMM, ci, color);
+                        }
+                        else if (m == GC_FGD || m == GC_PR_FGD) {
+                            pixel_t color = { get_r(img, r, c), get_g(img, r, c), get_b(img, r, c) };
+                            addSample(fgdGMM, ci, color);
+                        }
                     } else {
-                        if (m == GC_BGD || m == GC_PR_BGD)
-                            addSample(bgdGMM, ci, *img_at(img, r, c));
-                        else
-                            addSample(fgdGMM, ci, *img_at(img, r, c));
+                        if (m == GC_BGD || m == GC_PR_BGD) {
+                            pixel_t color = {get_r(img, r, c), get_g(img, r, c), get_b(img, r, c) };
+                            addSample(bgdGMM, ci, color);
+                        }
+                        else {
+                            pixel_t color = {get_r(img, r, c), get_g(img, r, c), get_b(img, r, c) };
+                            addSample(fgdGMM, ci, color);
+                        }
                     }
                 }
             }
@@ -1022,12 +1030,12 @@ int main()
     foreground->rows = background->rows = image.rows;
     foreground->cols = background->cols = image.cols;
 
-    foreground->r = (uint8_t *)calloc(img->rows * img->cols * sizeof(uint8_t));
-    foreground->g = (uint8_t *)calloc(img->rows * img->cols * sizeof(uint8_t));
-    foreground->b = (uint8_t *)calloc(img->rows * img->cols * sizeof(uint8_t));
-    background->r = (uint8_t *)calloc(img->rows * img->cols * sizeof(uint8_t));
-    background->g = (uint8_t *)calloc(img->rows * img->cols * sizeof(uint8_t));
-    background->b = (uint8_t *)calloc(img->rows * img->cols * sizeof(uint8_t));
+    foreground->r = (uint8_t *)calloc(img->rows * img->cols, sizeof(uint8_t));
+    foreground->g = (uint8_t *)calloc(img->rows * img->cols, sizeof(uint8_t));
+    foreground->b = (uint8_t *)calloc(img->rows * img->cols, sizeof(uint8_t));
+    background->r = (uint8_t *)calloc(img->rows * img->cols, sizeof(uint8_t));
+    background->g = (uint8_t *)calloc(img->rows * img->cols, sizeof(uint8_t));
+    background->b = (uint8_t *)calloc(img->rows * img->cols, sizeof(uint8_t));
 
     //foreground->array = (pixel_t *)malloc(img->rows * img->cols * sizeof(pixel_t));
     //background->array = (pixel_t *)malloc(img->rows * img->cols * sizeof(pixel_t));
