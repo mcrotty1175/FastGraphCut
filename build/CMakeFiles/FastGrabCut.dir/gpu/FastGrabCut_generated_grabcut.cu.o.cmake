@@ -64,7 +64,7 @@ set(cmake_dependency_file "/afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/
 set(CUDA_make2cmake "/usr/share/cmake/Modules/FindCUDA/make2cmake.cmake") # path
 set(CUDA_parse_cubin "/usr/share/cmake/Modules/FindCUDA/parse_cubin.cmake") # path
 set(build_cubin OFF) # bool
-set(CUDA_HOST_COMPILER "gcc") # path
+set(CUDA_HOST_COMPILER "") # path
 # We won't actually use these variables for now, but we need to set this, in
 # order to force this file to be run again if it changes.
 set(generated_file_path "/afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/build/CMakeFiles/FastGrabCut.dir/gpu/.") # path

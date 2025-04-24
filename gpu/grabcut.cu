@@ -311,6 +311,7 @@ static void initMaskWithRect(mask_t *mask, rect_t rect, image_t *img)
     }
 }
 
+/*
 void kmeans(pixel_t *pixels, int num_pixels, int k, int num_clusters, int max_iters, int *labels)
 {
     // labels = (int *)malloc(num_pixels * sizeof(int));
@@ -397,6 +398,7 @@ void kmeans(pixel_t *pixels, int num_pixels, int k, int num_clusters, int max_it
     free(new_centroids);
     free(counts);
 }
+*/
 
 //__global__ void kmeans_gpu(pixel_t *pixels, int num_pixels, int num_clusters, int max_iters, int *labels, Centroid* centroids, Centroid* new_centroids, int *counts)
 
@@ -645,8 +647,11 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
               
 
         st_b = omp_get_wtime();
-        kmeans(bgdSamples.data(), bgdSamples.size(), k, num_clusters, kMeansItCount,
-               bgdLabels);
+        kmeans_gpu<<<1, 256, 0, streams[0]>>>(dev_bgdSamples, bdg_samp_size, num_clusters, kMeansItCount,
+        dev_bgdLabels, centroids, new_centroids, counts);
+        
+        //kmeans(bgdSamples.data(), bgdSamples.size(), k, num_clusters, kMeansItCount,
+        //       bgdLabels);
         et_b = omp_get_wtime();
         cout<< "kmeans bgd time: " << et_b - st_b << "\n";
     }
@@ -686,7 +691,7 @@ static void assignGMMsComponents(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_
         int row_index = r * img->cols;
         for (int c = 0; c < img->cols; c++)
         {
-            pixel_t color = *img_at(img, r, c);
+            pixel_t color = { get_r(img, r, c), get_g(img, r, c), get_b(img, r, c) };
             MaskVal m = mask_at(mask, r, c);
             compIdxs[row_index + c] = (m == GC_BGD || m == GC_PR_BGD) ? whichComponent(bgdGMM, color) : whichComponent(fgdGMM, color);
         }
@@ -754,7 +759,8 @@ static void constructGCGraph(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *f
         {
             // add node
             int vtxIdx = graph.addVtx();
-            pixel_t color = *img_at(img, r, c);
+            pixel_t color = { get_r(img, r, c), get_g(img, r, c), get_b(img, r, c) };
+
 
             // set t-weights
             double fromSource, toSink;

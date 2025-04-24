@@ -2,11 +2,6 @@
 #include <cstdint>
 
 /*
-typedef struct {
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-} pixel_t;
 
 typedef struct {
     uint64_t rows;
@@ -34,6 +29,11 @@ float distance_squared(pixel_t p, Centroid c) {
 }
 */
 
+typedef struct {
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+} pixel_t;
 
 typedef struct {
     uint64_t x;
@@ -106,7 +106,7 @@ typedef struct {
     float r, g, b;
 } Centroid;
 
-float dist_squared(uint8_t r, uint8_t g, uint8_t b, float cr, float cg, float cb) {
+float distance_squared(uint8_t r, uint8_t g, uint8_t b, float cr, float cg, float cb) {
     float dr = r - cr;
     float dg = g - cg;
     float db = b - cb;

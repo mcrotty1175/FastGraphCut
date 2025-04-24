@@ -73,15 +73,15 @@ CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.o: CMakeFiles/SlowGrabCut.dir/f
 CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.o: /afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/benchmark/grabcut.cpp
 CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.o: CMakeFiles/SlowGrabCut.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.o"
-	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.o -MF CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.o.d -o CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.o -c /afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/benchmark/grabcut.cpp
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.o -MF CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.o.d -o CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.o -c /afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/benchmark/grabcut.cpp
 
 CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.i"
-	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/benchmark/grabcut.cpp > CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/benchmark/grabcut.cpp > CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.i
 
 CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.s"
-	/usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/benchmark/grabcut.cpp -o CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /afs/ece.cmu.edu/usr/shivig/Private/fc2/FastGraphCut/benchmark/grabcut.cpp -o CMakeFiles/SlowGrabCut.dir/benchmark/grabcut.cpp.s
 
 # Object files for target SlowGrabCut
 SlowGrabCut_OBJECTS = \
