@@ -455,7 +455,7 @@ __global__ void kmeans_gpu(
     {
     //     // Reset accumulators
         __syncthreads();
-        if (threadID.x < num_clusters)
+        if (id < num_clusters)
         {
             new_centroids[id].r = 0;
             new_centroids[id].g = 0;
@@ -489,10 +489,10 @@ __global__ void kmeans_gpu(
         atomicAdd(&counts[label], 1);
         __syncthreads();
 
-        if (threadID.x < num_clusters && counts[threadID.x]>0) {
-            centroids[threadID.x].r = (float)new_centroids[threadID.x].r / counts[threadID.x];
-            centroids[threadID.x].g = (float)new_centroids[threadID.x].g / counts[threadID.x];
-            centroids[threadID.x].b = (float)new_centroids[threadID.x].b / counts[threadID.x];
+        if (threadIdx.x < num_clusters && counts[threadIdx.x]>0) {
+            centroids[threadIdx.x].r = (float)new_centroids[threadIdx.x].r / counts[threadIdx.x];
+            centroids[threadIdx.x].g = (float)new_centroids[threadIdx.x].g / counts[threadIdx.x];
+            centroids[threadIdx.x].b = (float)new_centroids[threadIdx.x].b / counts[threadIdx.x];
         }
         __syncthreads();
 
@@ -631,7 +631,7 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
         Centroid *centroids; // = (Centroid *)malloc(num_clusters * sizeof(Centroid)); //in kmeans
         Centroid *new_centroids; // = (Centroid *)malloc(num_clusters * sizeof(Centroid)); //in kmeans
         int *counts; // = (int *)malloc(num_clusters * sizeof(int)); //in kmeans
-        int *dev_bgdLabels, *dev_fgdLabels;
+        int *dev_bgdLabels;
 
         cudaMalloc((void**)&centroids, num_clusters * sizeof(Centroid));
         cudaMalloc((void**)&new_centroids, num_clusters * sizeof(Centroid));
@@ -640,9 +640,9 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
 
 
         
-        pixel_t *dev_bgdSamples, *dev_fgdSamples;
-        int bdg_samp_size = (int)bgdSamples.size();
-        int fgd_samp_size = (int)fgdSamples.size();
+        //pixel_t *dev_bgdSamples, *dev_fgdSamples;
+        //int bdg_samp_size = (int)bgdSamples.size();
+        //int fgd_samp_size = (int)fgdSamples.size();
         
         //cudaMalloc(&dev_bgdLabels, sizeof(int)*(img->rows * img->cols));
         //cudaMalloc(&dev_fgdLabels, sizeof(int)*(img->rows * img->cols));
@@ -703,7 +703,15 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
         cudaMemcpy(d_fgdG, fgdG.data(), fgd_size * sizeof(uint8_t), cudaMemcpyHostToDevice);
         cudaMemcpy(d_fgdB, fgdB.data(), fgd_size * sizeof(uint8_t), cudaMemcpyHostToDevice);
 
-        cudaMalloc((void**)&dev_fgdLabels, fgd_size * sizeof(int));
+        Centroid *centroids; // = (Centroid *)malloc(num_clusters * sizeof(Centroid)); //in kmeans
+        Centroid *new_centroids; // = (Centroid *)malloc(num_clusters * sizeof(Centroid)); //in kmeans
+        int *counts; // = (int *)malloc(num_clusters * sizeof(int)); //in kmeans
+        int *dev_fgdLabels;
+
+        cudaMalloc((void**)&centroids, num_clusters * sizeof(Centroid));
+        cudaMalloc((void**)&new_centroids, num_clusters * sizeof(Centroid));
+        cudaMalloc((void**)&counts, num_clusters * sizeof(int));
+        cudaMalloc((void**)&dev_fgdLabels, bdg_size * sizeof(int));
 
 
 
@@ -721,7 +729,7 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
 
     // can use streams? one for fg and one for bg
     initLearning(bgdGMM);
-    for (int i = 0; i < (int)bgdSamples.size(); i++) {
+    for (int i = 0; i < bdg_size; i++) {
         pixel_t px = { bgdR[i], bgdG[i], bgdB[i] };
         addSample(bgdGMM, bgdLabels[i], px);
     }
@@ -729,7 +737,7 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
     endLearning(bgdGMM);
 
     initLearning(fgdGMM);
-    for (int i = 0; i < (int)fgdSamples.size(); i++) {
+    for (int i = 0; i < fgd_size; i++) {
         pixel_t px = { fgdR[i], fgdG[i], fgdB[i] };
         addSample(fgdGMM, fgdLabels[i], px);
     }
