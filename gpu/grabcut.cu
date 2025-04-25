@@ -181,23 +181,23 @@ void endLearning(GMM_t *gmm)
         }
     }
     // Print GMM means
-    std::cout << "GMM Means:" << std::endl;
-    for (int ci = 0; ci < COMPONENT_COUNT; ci++)
-    {
-        double *m = gmm->mean + 3 * ci;
-        std::cout << "Component " << ci << ": (" << m[0] << ", " << m[1] << ", " << m[2] << ")" << std::endl;
-    }
+    // std::cout << "GMM Means:" << std::endl;
+    // for (int ci = 0; ci < COMPONENT_COUNT; ci++)
+    // {
+    //     double *m = gmm->mean + 3 * ci;
+    //     std::cout << "Component " << ci << ": (" << m[0] << ", " << m[1] << ", " << m[2] << ")" << std::endl;
+    // }
 
     // Print GMM covariance matrices
-    std::cout << "GMM Covariance Matrices:" << std::endl;
-    for (int ci = 0; ci < COMPONENT_COUNT; ci++)
-    {
-        double *c = gmm->cov + 9 * ci;
-        std::cout << "Component " << ci << ":" << std::endl;
-        std::cout << "[" << c[0] << ", " << c[1] << ", " << c[2] << "]" << std::endl;
-        std::cout << "[" << c[3] << ", " << c[4] << ", " << c[5] << "]" << std::endl;
-        std::cout << "[" << c[6] << ", " << c[7] << ", " << c[8] << "]" << std::endl;
-    }
+    // std::cout << "GMM Covariance Matrices:" << std::endl;
+    // for (int ci = 0; ci < COMPONENT_COUNT; ci++)
+    // {
+    //     double *c = gmm->cov + 9 * ci;
+    //     std::cout << "Component " << ci << ":" << std::endl;
+    //     std::cout << "[" << c[0] << ", " << c[1] << ", " << c[2] << "]" << std::endl;
+    //     std::cout << "[" << c[3] << ", " << c[4] << ", " << c[5] << "]" << std::endl;
+    //     std::cout << "[" << c[6] << ", " << c[7] << ", " << c[8] << "]" << std::endl;
+    // }
     
 }
 
@@ -453,8 +453,9 @@ __global__ void kmeans_gpu(
 
     for (int iter = 0; iter < max_iters; ++iter)
     {
+        //printf("iter: %d id: %d\n", iter, id);
     //     // Reset accumulators
-        __syncthreads();
+        // __syncthreads();
         if (id < num_clusters)
         {
             new_centroids[id].r = 0;
@@ -465,9 +466,9 @@ __global__ void kmeans_gpu(
 
         __syncthreads();
 
-        uint8_t ri = r[id];
-        uint8_t gi = g[id];
-        uint8_t bi = b[id];
+        float ri = r[id];
+        float gi = g[id];
+        float bi = b[id];
 
         float min_dist = INFINITY;
         int label = 0;
@@ -490,11 +491,15 @@ __global__ void kmeans_gpu(
         atomicAdd(&counts[label], 1);
         __syncthreads();
 
-        if (threadIdx.x < num_clusters && counts[threadIdx.x]>0) {
-            centroids[threadIdx.x].r = (float)new_centroids[threadIdx.x].r / counts[threadIdx.x];
-            centroids[threadIdx.x].g = (float)new_centroids[threadIdx.x].g / counts[threadIdx.x];
-            centroids[threadIdx.x].b = (float)new_centroids[threadIdx.x].b / counts[threadIdx.x];
+        if (id < num_clusters && counts[id] > 0) {
+            centroids[id].r = (float)new_centroids[id].r / counts[id];
+            centroids[id].g = (float)new_centroids[id].g / counts[id];
+            centroids[id].b = (float)new_centroids[id].b / counts[id];
+            //printf("in if \n");
+            printf("centroid %d: (%f, %f, %f)\n", id, centroids[id].r, centroids[id].g, centroids[id].b);
+
         }
+
         __syncthreads();
 
 
@@ -629,12 +634,13 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
         cudaMemcpy(d_bgdG, bgdG.data(), bdg_size * sizeof(uint8_t), cudaMemcpyHostToDevice);
         cudaMemcpy(d_bgdB, bgdB.data(), bdg_size * sizeof(uint8_t), cudaMemcpyHostToDevice);
 
-        Centroid *centroids; // = (Centroid *)malloc(num_clusters * sizeof(Centroid)); //in kmeans
-        Centroid *new_centroids; // = (Centroid *)malloc(num_clusters * sizeof(Centroid)); //in kmeans
-        int *counts; // = (int *)malloc(num_clusters * sizeof(int)); //in kmeans
+        Centroid *centroids = (Centroid *)malloc(num_clusters * sizeof(Centroid)); //in kmeans
+        Centroid *new_centroids;// = (Centroid *)malloc(num_clusters * sizeof(Centroid)); //in kmeans
+        int *counts;// = (int *)malloc(num_clusters * sizeof(int)); //in kmeans
         int *dev_bgdLabels;
+        Centroid *dev_centroids;
 
-        cudaMalloc((void**)&centroids, num_clusters * sizeof(Centroid));
+        cudaMalloc((void**)&dev_centroids, num_clusters * sizeof(Centroid));
         cudaMalloc((void**)&new_centroids, num_clusters * sizeof(Centroid));
         cudaMalloc((void**)&counts, num_clusters * sizeof(int));
         cudaMalloc((void**)&dev_bgdLabels, bdg_size * sizeof(int));
@@ -659,19 +665,36 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
         //int *bgd_rand_ints = (int*)malloc(num_clusters* sizeof(int));
         //int *fgd_rand_ints = (int*)malloc(num_clusters* sizeof(int));
 
-        /*
-        for (int i = 0; i < 5; i++) {
-            bgd_rand_ints[i] = rand() % bdg_samp_size;
-            fgd_rand_ints[i] = rand() % fgd_samp_size;
+        //but this will go into kmeans anyway, so move this to kmeans function? or nah, since we have threads doing it??
+        srand(0); //seed for random number generation
+        for (int i = 0; i < num_clusters; i++) {
+
+            int idx = rand() % (img->cols * img->rows); //randomly select a pixel from the image to be the centroid
+            //might be arrow
+            cout << "idx: " << idx << "\n";
+            
+            centroids[i].r = img->r[idx];
+            centroids[i].g =  img->g[idx];
+            centroids[i].b =  img->b[idx];
+            //fgd_rand_ints[i] = srand(0) % fgd_samp_size;
         } //would then need to copy this to device memory and include as argument in kmeans_gpu kernel call
-        */
+        cudaMemcpy(dev_centroids, centroids, num_clusters * sizeof(Centroid), cudaMemcpyHostToDevice);
 
         //THESE CUDA MEMCPYS arent part of the timing, right??
         //cudaMemcpy(dev_bgdSamples, bgdSamples.data(), bdg_samp_size * sizeof(pixel_t), cudaMemcpyHostToDevice);
         //cudaMemcpy(dev_fgdSamples, fgdSamples.data(), fgd_samp_size * sizeof(pixel_t), cudaMemcpyHostToDevice);
-
+        // auto start = std::chrono::high_resolution_clock::now();
+        st_b = omp_get_wtime();
         kmeans_gpu<<<1, 256, 0, streams[0]>>>(d_bgdR, d_bgdG, d_bgdB, bdg_size,
-        centroids, new_centroids, counts, dev_bgdLabels, num_clusters, kMeansItCount);
+        dev_centroids, new_centroids, counts, dev_bgdLabels, num_clusters, kMeansItCount);
+        et_b = omp_get_wtime();
+        cout<< "kmeans bgd time: " << et_b - st_b << "\n";
+
+        // auto end = std::chrono::high_resolution_clock::now();
+        // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+        // std::cout << "K-means for background took: " << duration.count() << " microseconds" << std::endl;
+
+        cout << "hiii" "\n";
 
         //kmeans_gpu<<<1, 256, 0, streams[0]>>>(dev_bgdSamples, bdg_samp_size, num_clusters, kMeansItCount,
         //dev_bgdLabels, centroids, new_centroids, counts);
@@ -988,18 +1011,18 @@ void grabCut(image_t *img, rect_t rect, image_t *foreground, image_t *background
     //std::cout << "Gamma: " << gamma << std::endl;
 
     
-    for (int i = 0; i < iterCount; i++) //i< iterCount
-    {
-        GCGraph<double> graph;
-        assignGMMsComponents(img, mask, bgdGMM, fgdGMM, compIdxs);
-        learnGMMs(img, mask, compIdxs, bgdGMM, fgdGMM, i);
-        constructGCGraph(img, mask, bgdGMM, fgdGMM, lambda, leftW, upleftW, upW, uprightW, graph);
-        estimateSegmentation(graph, mask);
-    }
-    gettingOutput(img, mask, foreground, background);
+    // for (int i = 0; i < iterCount; i++) //i< iterCount
+    // {
+    //     GCGraph<double> graph;
+    //     assignGMMsComponents(img, mask, bgdGMM, fgdGMM, compIdxs);
+    //     learnGMMs(img, mask, compIdxs, bgdGMM, fgdGMM, i);
+    //     constructGCGraph(img, mask, bgdGMM, fgdGMM, lambda, leftW, upleftW, upW, uprightW, graph);
+    //     estimateSegmentation(graph, mask);
+    // }
+    // gettingOutput(img, mask, foreground, background);
 
-    displayImage(foreground);
-    displayImage(background);
+    // displayImage(foreground);
+    // displayImage(background);
     // cout << "after lop\n";  
 }
 

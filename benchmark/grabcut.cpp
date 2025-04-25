@@ -336,9 +336,11 @@ void kmeans(pixel_t *pixels, int num_pixels, int k, int num_clusters, int max_it
     int *counts = (int *)malloc(num_clusters * sizeof(int));
 
     // Set initial cluster centers randomly
+    srand(0);
     for (int i = 0; i < num_clusters; ++i)
     {
         int idx = rand() % num_pixels;
+        cout << "idx: " << idx << "\n";
         centroids[i].r = pixels[idx].r;
         centroids[i].g = pixels[idx].g;
         centroids[i].b = pixels[idx].b;
@@ -402,8 +404,12 @@ void kmeans(pixel_t *pixels, int num_pixels, int k, int num_clusters, int max_it
                 converged = 0;
             }
 
-            centroids[i] = updated;
+            centroids[i].r = updated.r;
+            centroids[i].g = updated.g;
+            centroids[i].b = updated.b;
+            printf("centroid %d: (%f, %f, %f)\n", i, centroids[i].r, centroids[i].g, centroids[i].b);
         }
+
 
         if (converged)
             break;
@@ -699,6 +705,9 @@ void grabCut(image_t *img, rect_t rect, image_t *foreground, image_t *background
     int *compIdxs = (int *)malloc(num_pixels * sizeof(int));
 
     initMaskWithRect(mask, rect, img);
+    // gettingOutput(img, mask, foreground, background);
+    // displayImage(foreground);
+    // displayImage(background);
     // gettingOutput(img, mask, foreground, background);
     // displayImage(foreground);
     // displayImage(background);

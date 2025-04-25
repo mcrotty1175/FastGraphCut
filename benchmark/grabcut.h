@@ -60,7 +60,7 @@ typedef double* weight_t;
 
 // For kmeans
 typedef struct {
-    float r, g, b;
+    uint8_t r, g, b;
 } Centroid;
 
 float distance_squared(pixel_t p, Centroid c) {
