@@ -336,14 +336,17 @@ void kmeans(pixel_t *pixels, int num_pixels, int k, int num_clusters, int max_it
     int *counts = (int *)malloc(num_clusters * sizeof(int));
 
     // Set initial cluster centers randomly
-    srand(0);
+    //srand(1);
+    int randomNumbers[5] = {67960, 1986234, 5678, 79101, 1245};
     for (int i = 0; i < num_clusters; ++i)
     {
-        int idx = rand() % num_pixels;
+        int idx = randomNumbers[i] % num_pixels;
         cout << "idx: " << idx << "\n";
         centroids[i].r = pixels[idx].r;
         centroids[i].g = pixels[idx].g;
         centroids[i].b = pixels[idx].b;
+        printf("centroid %d: (%d, %d, %d)\n", i, centroids[i].r, centroids[i].g, centroids[i].b);
+        cout << "centroid " << i << ": (" << centroids[i].r << ", " << centroids[i].g << ", " << centroids[i].b << ")\n";
     }
 
     for (int iter = 0; iter < max_iters; ++iter)

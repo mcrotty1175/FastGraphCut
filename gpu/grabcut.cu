@@ -453,8 +453,8 @@ __global__ void kmeans_gpu(
 
     for (int iter = 0; iter < max_iters; ++iter)
     {
-        //printf("iter: %d id: %d\n", iter, id);
-    //     // Reset accumulators
+        printf("iter: %d id: %d\n", iter, id);
+         // Reset accumulators
         // __syncthreads();
         if (id < num_clusters)
         {
@@ -666,10 +666,11 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
         //int *fgd_rand_ints = (int*)malloc(num_clusters* sizeof(int));
 
         //but this will go into kmeans anyway, so move this to kmeans function? or nah, since we have threads doing it??
-        srand(0); //seed for random number generation
-        for (int i = 0; i < num_clusters; i++) {
+        //srand(1); //seed for random number generation
+        int randomNumbers[5] = {67960, 1986234, 5678, 79101, 1245};
 
-            int idx = rand() % (img->cols * img->rows); //randomly select a pixel from the image to be the centroid
+        for (int i = 0; i < num_clusters; i++) {
+            int idx = randomNumbers[i] % (bdg_size); //randomly select a pixel from the image to be the centroid
             //might be arrow
             cout << "idx: " << idx << "\n";
             
@@ -685,7 +686,7 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
         //cudaMemcpy(dev_fgdSamples, fgdSamples.data(), fgd_samp_size * sizeof(pixel_t), cudaMemcpyHostToDevice);
         // auto start = std::chrono::high_resolution_clock::now();
         st_b = omp_get_wtime();
-        kmeans_gpu<<<1, 256, 0, streams[0]>>>(d_bgdR, d_bgdG, d_bgdB, bdg_size,
+        kmeans_gpu<<<1, 64, 0, streams[0]>>>(d_bgdR, d_bgdG, d_bgdB, bdg_size,
         dev_centroids, new_centroids, counts, dev_bgdLabels, num_clusters, kMeansItCount);
         et_b = omp_get_wtime();
         cout<< "kmeans bgd time: " << et_b - st_b << "\n";
@@ -740,8 +741,8 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
 
 
         //st_f = omp_get_wtime();
-        kmeans_gpu<<<1, 256, 0, streams[1]>>>(d_fgdR, d_fgdG, d_fgdB, fgd_size,
-            centroids, new_centroids, counts, dev_fgdLabels, num_clusters, kMeansItCount);
+        // kmeans_gpu<<<1, 256, 0, streams[1]>>>(d_fgdR, d_fgdG, d_fgdB, fgd_size,
+        //     centroids, new_centroids, counts, dev_fgdLabels, num_clusters, kMeansItCount);
 
         cudaMemcpy(fgdLabels, dev_fgdLabels, fgd_size * sizeof(int), cudaMemcpyDeviceToHost);
 
