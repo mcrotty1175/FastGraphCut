@@ -13,7 +13,7 @@ set(OpenCV_DIR "/afs/ece.cmu.edu/usr/$ENV{USER}/Private/build/")
 find_package( OpenCV REQUIRED )
 find_package( CUDA 12.3 REQUIRED )
 
-set(CMAKE_CUDA_ARCHITECTURES 52 60 61 70 75 80 86)
+set(CMAKE_CUDA_ARCHITECTURES native)
 
 set(CMAKE_CUDA_STANDARD 14)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)

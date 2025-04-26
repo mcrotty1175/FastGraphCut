@@ -119,7 +119,7 @@ void initLearning(GMM_t *gmm)
 
 void addSample(GMM_t *gmm, int ci, pixel_t color)
 {
-    if (gmm == NULL) 
+    if (gmm == NULL)
     {
         cout << "gmm is null in addsample\n";
         return;
@@ -129,7 +129,7 @@ void addSample(GMM_t *gmm, int ci, pixel_t color)
         std::cerr << "Invalid component index in addSample: " << ci << std::endl;
         return;
     }
-    
+
     gmm->sums[ci][0] += color.r;
     gmm->sums[ci][1] += color.g;
     gmm->sums[ci][2] += color.b;
@@ -197,7 +197,7 @@ void endLearning(GMM_t *gmm)
         // std::cout << "[" << c[3] << ", " << c[4] << ", " << c[5] << "]" << std::endl;
         // std::cout << "[" << c[6] << ", " << c[7] << ", " << c[8] << "]" << std::endl;
     }
-    
+
 }
 
 void calcInverseCovAndDeterm(GMM_t *gmm, int ci, double singularFix)
@@ -307,7 +307,7 @@ static void initMaskWithRect(mask_t *mask, rect_t rect, image_t *img)
 
     int remaining_width = img->cols - start_x;
     int width = (rect.width < remaining_width) ? rect.width : remaining_width;
-    
+
     int remaining_height = img->rows -start_y;
     int end_y = rect.height < remaining_height ? rect.height : remaining_height;
     end_y += start_y;
@@ -390,8 +390,8 @@ void kmeans(pixel_t *pixels, int num_pixels, int k, int num_clusters, int max_it
             // Check if centroid has changed significantly
             // pixel_t estimate_center = {(uint8_t)centroids[i].r, (uint8_t)centroids[i].g, (uint8_t)centroids[i].b};
             // float shift = distance_squared(estimate_center, updated);
-            
-            float shift = 
+
+            float shift =
                 (centroids[i].r - updated.r) * (centroids[i].r - updated.r) +
                 (centroids[i].g - updated.g) * (centroids[i].g - updated.g) +
                 (centroids[i].b - updated.b) * (centroids[i].b - updated.b);
@@ -437,13 +437,13 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
     // cout << "before kmeans\n";
     // cout << "bgd samples size: " << bgdSamples.size() << "\n";
     // cout << "fgd samples size: " << fgdSamples.size() << "\n";
-    
+
     int *bgdLabels = (int*)malloc(img->rows * img->cols * sizeof(int));
     int *fgdLabels = (int*)malloc(img->rows * img->cols * sizeof(int));
     // cout << "first for loop\n";
 
     // replace with kmeans kernel - maybe use streams?
-    
+
 
     {
         int num_clusters = COMPONENT_COUNT;
@@ -536,7 +536,7 @@ static void learnGMMs(image_t *img, mask_t *mask, int *compIdxs, GMM_t *bgdGMM, 
     // std::cout << "BGD GMM means weights after learning:" << std::endl;
     endLearning(bgdGMM);
     // std::cout << "FGD GMM means weights after learning:" << std::endl;
-    endLearning(fgdGMM);    
+    endLearning(fgdGMM);
 }
 
 static void constructGCGraph(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM, double lambda,
@@ -607,7 +607,7 @@ static void constructGCGraph(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *f
             }
         }
     }
-    
+
 }
 
 static void estimateSegmentation(GCGraph<double>& graph, mask_t *mask)
@@ -631,7 +631,7 @@ static void estimateSegmentation(GCGraph<double>& graph, mask_t *mask)
                     mask_set(mask, r, c, GC_PR_BGD);
                     // cout << " mask[" << r << "][" << c << "] = GC_PR_BGD\n";
                 }
-                    
+
             }
         }
     }
@@ -709,6 +709,10 @@ void grabCut(image_t *img, rect_t rect, image_t *foreground, image_t *background
     const double gamma = 50;
     const double lambda = 9 * gamma;
 
+    // how to copy image over to the gpu
+    const double beta = calcBeta(img);
+    std::cout << "Beta: " << beta << std::endl;
+
     double *leftW, *upleftW, *upW, *uprightW;
     leftW = (double*)calloc(num_pixels, sizeof(double));
     upleftW = (double*)calloc(num_pixels, sizeof(double));
@@ -726,7 +730,7 @@ void grabCut(image_t *img, rect_t rect, image_t *foreground, image_t *background
     start = std::chrono::high_resolution_clock::now();
     calcNWeights(img, leftW, upleftW, upW, uprightW, beta, gamma);
     end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);    
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     std::cout << "calcNWeights took: " << duration.count() << " microseconds" << std::endl;
 
 
@@ -741,7 +745,7 @@ void grabCut(image_t *img, rect_t rect, image_t *foreground, image_t *background
     // cout << "After calc nweights\n";
     // std::cout << "Gamma: " << gamma << std::endl;
 
-    
+
     // for (int i = 0; i < iterCount; i++) //i< iterCount
     // {
     //     GCGraph<double> graph;
@@ -754,7 +758,7 @@ void grabCut(image_t *img, rect_t rect, image_t *foreground, image_t *background
 
     // displayImage(foreground);
     // displayImage(background);
-    // cout << "after lop\n";  
+    // cout << "after lop\n";
 }
 
 int main(int argc, char **argv)
@@ -778,6 +782,7 @@ int main(int argc, char **argv)
     img->rows = image.rows;
     img->cols = image.cols;
 
+    /*
     image_t *foreground = (image_t *)malloc(sizeof(image_t));
     foreground->rows = image.rows;
     foreground->cols = image.cols;
@@ -787,6 +792,7 @@ int main(int argc, char **argv)
     background->rows = image.rows;
     background->cols = image.cols;
     background->array = (pixel_t *)malloc(img->rows * img->cols * sizeof(pixel_t));
+    */
 
     std::cout << "image dimensions: " << img->rows << " " << img->cols << std::endl;
     img->array = (pixel_t *)malloc(img->rows * img->cols * sizeof(pixel_t));
@@ -810,7 +816,20 @@ int main(int argc, char **argv)
 
     // grabCut(img, {78, 188, 240, 390}, foreground, background, 5); // 78 188 240 390 large 304074
 
-    grabCut(img, {103, 59, 477, 401}, foreground, background, 5); 
+    double *leftW, *upleftW, *upW, *uprightW;
+    int num_pixels = img->rows * img->cols;
+    leftW = (double*)calloc(num_pixels, sizeof(double));
+    upleftW = (double*)calloc(num_pixels, sizeof(double));
+    upW = (double*)calloc(num_pixels, sizeof(double));
+    uprightW = (double*)calloc(num_pixels, sizeof(double));
+
+
+    const double beta = calcBeta(img);
+    cout << "Beta: " << beta << endl;
+
+    calcNWeights(img, leftW, upleftW, upW, uprightW, beta, 50);
+
+    // grabCut(img, {103, 59, 477, 401}, foreground, background, 5);
     //103 59 477 401 large flower
     // cv::imshow("Loaded Image", img.array);
     // cv::waitKey(0);
