@@ -435,6 +435,7 @@ __global__ void kmeans_gpu(
     and stream them all???
     */
     int id = blockIdx.x * blockDim.x + threadIdx.x; //and/or y
+    int tid = threadIdx.x; //thread id within block
     if (id >= num_pixels)
         return;
 
@@ -444,12 +445,12 @@ __global__ void kmeans_gpu(
          // Reset accumulators
         // __syncthreads();
 
-        if (id < num_clusters) {
-            shared_centroids[id] = centroids[id];
-            local_sum_r[id] = 0.0f;
-            local_sum_g[id] = 0.0f;
-            local_sum_b[id] = 0.0f;
-            local_count[id] = 0;
+        if (tid < num_clusters) {
+            shared_centroids[tid] = centroids[tid];
+            local_sum_r[tid] = 0.0f;
+            local_sum_g[tid] = 0.0f;
+            local_sum_b[tid] = 0.0f;
+            local_count[tid] = 0;
         }
         __syncthreads(); //only syncs TBs
 
@@ -479,12 +480,12 @@ __global__ void kmeans_gpu(
         atomicAdd(&local_count[label], 1);
         __syncthreads(); //unncessary?
 
-        if (id < num_clusters) {
-            if (local_count[id] == 0)
+        if (tid < num_clusters) {
+            if (local_count[tid] == 0)
                 continue; // avoid division by zero
-            centroids[id].r = local_sum_r[threadIdx.x] / local_count[threadIdx.x];
-            centroids[id].g = local_sum_g[threadIdx.x] / local_count[threadIdx.x];
-            centroids[id].b = local_sum_b[threadIdx.x] / local_count[threadIdx.x];
+            centroids[tid].r = local_sum_r[threadIdx.x] / local_count[threadIdx.x];
+            centroids[tid].g = local_sum_g[threadIdx.x] / local_count[threadIdx.x];
+            centroids[tid].b = local_sum_b[threadIdx.x] / local_count[threadIdx.x];
             //printf("in if \n");
             //printf("centroid %d: (%f, %f, %f)\n", id, centroids[id].r, centroids[id].g, centroids[id].b);
 
