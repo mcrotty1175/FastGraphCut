@@ -407,7 +407,21 @@ __global__ void kmeans_gpu(
     Centroid *centroids, Centroid *new_centroids, int *counts,
     int *labels, int num_clusters, int max_iters)
 {
-    //__shared__ float buffer[256];
+    int block_id = blockIdx.x;
+
+    int num_bytes = 256; //use for getting parts of global image
+    __shared__ Centroid shared_centroids[5];// = centroids;
+    __shared__ float local_sum_r[5];
+    __shared__ float local_sum_g[5];
+    __shared__ float local_sum_b[5];
+    __shared__ int local_count[5];
+    // __shared__ uint8_t red[num_bytes] = r[block_id * num_bytes];
+    //__shared__ uint8_t green[num_bytes] = g[block_id * num_bytes];
+    // __shared__ uint8_t blue[num_bytes] = b[block_id * num_bytes];
+    
+    // float* s_c = buffer;
+    // float* s_a = buffer + 4096;
+    // float* s_b = buffer + 4096 * 2;
     // cout << "number of threads: " << blockDim.x << endl;
     //CAN JUST DO IF THREADID = 0 or smthg
 
@@ -424,47 +438,20 @@ __global__ void kmeans_gpu(
     if (id >= num_pixels)
         return;
 
-    /* 
-    dont know if we actually want to do curand this once we figure out
-    how to spread out image in memory on GPU?
-    */
-    //but want to make sure that only one thread does this?
-
-    /*
-    curandState state;
-    curand_init(1234, id, 0, &state); // Initialize the random number generator
-
-    int numPixelsPerThread = num_pixels / blockDim.x;
-
-    // printf("num pixels per thread: %d and counts: %ld\n", numPixelsPerThread, counts[0]);
-
-    //initialize clusters to random values
-    if (id < num_clusters)
-    {
-        int idx = curand(&state) % num_pixels;
-        printf("random int: %d\n", idx);
-
-        //int idx = 5; //this was to get it to compile without rand
-        
-        centroids[id].r = pixels[idx].r;
-        centroids[id].g = pixels[idx].g;
-        centroids[id].b = pixels[idx].b;
-    } */
-
     for (int iter = 0; iter < max_iters; ++iter)
     {
-        printf("iter: %d id: %d\n", iter, id);
+        //printf("iter: %d id: %d\n", iter, id);
          // Reset accumulators
         // __syncthreads();
-        if (id < num_clusters)
-        {
-            new_centroids[id].r = 0;
-            new_centroids[id].g = 0;
-            new_centroids[id].b = 0;
-            counts[id] = 0;
-        }
 
-        __syncthreads();
+        if (id < num_clusters) {
+            shared_centroids[id] = centroids[id];
+            local_sum_r[id] = 0.0f;
+            local_sum_g[id] = 0.0f;
+            local_sum_b[id] = 0.0f;
+            local_count[id] = 0;
+        }
+        __syncthreads(); //only syncs TBs
 
         float ri = r[id];
         float gi = g[id];
@@ -475,7 +462,7 @@ __global__ void kmeans_gpu(
 
         for (int j = 0; j < num_clusters; ++j)
         {
-            float dist = (ri - centroids[j].r) * (ri - centroids[j].r) + (gi - centroids[j].g)*(gi - centroids[j].g) + (bi - centroids[j].b)*(bi - centroids[j].b);
+            float dist = (ri - shared_centroids[j].r) * (ri - shared_centroids[j].r) + (gi - shared_centroids[j].g)*(gi - shared_centroids[j].g) + (bi - shared_centroids[j].b)*(bi - shared_centroids[j].b);
             //distance_squared(ri, gi, bi, centroids[j].r, centroids[j].g, centroids[j].b);
             if (dist < min_dist)
             {
@@ -485,78 +472,29 @@ __global__ void kmeans_gpu(
         }
         labels[id] = label;
 
-        atomicAdd(&new_centroids[label].r, ri);
-        atomicAdd(&new_centroids[label].g, gi);
-        atomicAdd(&new_centroids[label].b, bi);
-        atomicAdd(&counts[label], 1);
-        __syncthreads();
+        
+        atomicAdd(&local_sum_r[label], ri);
+        atomicAdd(&local_sum_g[label], gi);
+        atomicAdd(&local_sum_b[label], bi);
+        atomicAdd(&local_count[label], 1);
+        __syncthreads(); //unncessary?
 
-        if (id < num_clusters && counts[id] > 0) {
-            centroids[id].r = (float)new_centroids[id].r / counts[id];
-            centroids[id].g = (float)new_centroids[id].g / counts[id];
-            centroids[id].b = (float)new_centroids[id].b / counts[id];
-            //printf("in if \n");
-            printf("centroid %d: (%f, %f, %f)\n", id, centroids[id].r, centroids[id].g, centroids[id].b);
-
-        }
-
-        __syncthreads();
-
-
-
-    /*
-    //     // Assign labels based on nearest centroid
-    //     for (int i = 0; i < num_pixels; ++i)
-    //     {
-    //         float min_dist = INFINITY;
-    //         int label = 0;
-    //         for (int j = 0; j < num_clusters; ++j)
-    //         {
-    //             float dist = distance_squared(pixels[i], centroids[j]);
-    //             if (dist < min_dist)
-    //             {
-    //                 min_dist = dist;
-    //                 label = j;
-    //             }
-    //         }
-    //         labels[i] = label;
-    //         new_centroids[label].r += pixels[i].r;
-    //         new_centroids[label].g += pixels[i].g;
-    //         new_centroids[label].b += pixels[i].b;
-    //         counts[label]++;
-    //     }
-
-    //     // Update centroids
-        int converged = 1;
-        if (id < num_clusters)
-        {
-            if (counts[id] == 0)
+        if (id < num_clusters) {
+            if (local_count[id] == 0)
                 continue; // avoid division by zero
+            centroids[id].r = local_sum_r[threadIdx.x] / local_count[threadIdx.x];
+            centroids[id].g = local_sum_g[threadIdx.x] / local_count[threadIdx.x];
+            centroids[id].b = local_sum_b[threadIdx.x] / local_count[threadIdx.x];
+            //printf("in if \n");
+            //printf("centroid %d: (%f, %f, %f)\n", id, centroids[id].r, centroids[id].g, centroids[id].b);
 
-            Centroid updated = {
-                new_centroids[id].r / counts[id],
-                new_centroids[id].g / counts[id],
-                new_centroids[id].b / counts[id]};
-
-            // Check if centroid has changed significantly
-            // pixel_t estimate_center = {(uint8_t)centroids[i].r, (uint8_t)centroids[i].g, (uint8_t)centroids[i].b};
-            // float shift = distance_squared(estimate_center, updated);
-            
-            float shift = 
-                (centroids[id].r - updated.r) * (centroids[id].r - updated.r) +
-                (centroids[id].g - updated.g) * (centroids[id].g - updated.g) +
-                (centroids[id].b - updated.b) * (centroids[id].b - updated.b);
-
-            if (shift > 1e-4f)
-            {
-                converged = 0;
-            }
-
-            centroids[id] = updated;
         }
 
-    //     if (converged)
-    __syncthreads();*/
+        __syncthreads();
+        //sync all TBs (for new_centroids to be updated before next iter)
+        //cudaDeviceSynchronize();
+        //auto grid = cooperative_groups::this_grid();
+        //grid.sync(); //wait for all TBs to finish before moving on to next iter 
     } 
 }
 
@@ -668,11 +606,13 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
         //but this will go into kmeans anyway, so move this to kmeans function? or nah, since we have threads doing it??
         //srand(1); //seed for random number generation
         int randomNumbers[5] = {67960, 1986234, 5678, 79101, 1245};
+        cout << "bdg_size: " << bdg_size << "\n";
 
         for (int i = 0; i < num_clusters; i++) {
             int idx = randomNumbers[i] % (bdg_size); //randomly select a pixel from the image to be the centroid
             //might be arrow
             cout << "idx: " << idx << "\n";
+            
             
             centroids[i].r = img->r[idx];
             centroids[i].g =  img->g[idx];
@@ -685,8 +625,10 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
         //cudaMemcpy(dev_bgdSamples, bgdSamples.data(), bdg_samp_size * sizeof(pixel_t), cudaMemcpyHostToDevice);
         //cudaMemcpy(dev_fgdSamples, fgdSamples.data(), fgd_samp_size * sizeof(pixel_t), cudaMemcpyHostToDevice);
         // auto start = std::chrono::high_resolution_clock::now();
+        int threadsPerBlock = 256;
+        int numBlocks = (bdg_size + threadsPerBlock - 1) / (threadsPerBlock );
         st_b = omp_get_wtime();
-        kmeans_gpu<<<1, 64, 0, streams[0]>>>(d_bgdR, d_bgdG, d_bgdB, bdg_size,
+        kmeans_gpu<<<numBlocks, threadsPerBlock, 0, streams[0]>>>(d_bgdR, d_bgdG, d_bgdB, bdg_size,
         dev_centroids, new_centroids, counts, dev_bgdLabels, num_clusters, kMeansItCount);
         et_b = omp_get_wtime();
         cout<< "kmeans bgd time: " << et_b - st_b << "\n";

@@ -338,10 +338,12 @@ void kmeans(pixel_t *pixels, int num_pixels, int k, int num_clusters, int max_it
     // Set initial cluster centers randomly
     //srand(1);
     int randomNumbers[5] = {67960, 1986234, 5678, 79101, 1245};
+    cout << "num_pixels: " << num_pixels << "\n";
     for (int i = 0; i < num_clusters; ++i)
     {
         int idx = randomNumbers[i] % num_pixels;
         cout << "idx: " << idx << "\n";
+        
         centroids[i].r = pixels[idx].r;
         centroids[i].g = pixels[idx].g;
         centroids[i].b = pixels[idx].b;
