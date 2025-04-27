@@ -11,9 +11,13 @@
 #include <omp.h>
 using namespace std;
 
-#define COMPONENT_COUNT 5
 #define NUM_GPU_STREAMS 4
-#define THREADS_PER_BLOCK 512
+// Max 640
+#define NUM_THREAD_BLOCKS 640
+// Max like 4*256 = 1024?
+#define THREADS_PER_BLOCK 32
+#define MAX_SHARED_MEM (64000/16)
+#define MAX_COLS (MAX_SHARED_MEM/2/sizeof(pixel_t))
 
 
 int cpu_dot_diff(pixel_t *a, pixel_t *b) {
@@ -114,7 +118,7 @@ __device__ float gpu_dot_diff(pixel_t *a, pixel_t *b) {
 }
 
 __global__ void fastCalcBeta(
-        pixel_t *pixels, uint64_t rows, uint64_t cols,
+        pixel_t *pixels, uint64_t rows, uint64_t cols, int tile_width,
         weight_t leftW, weight_t upleftW, weight_t upW, weight_t uprightW,
         float *globalBeta
 ) {
@@ -122,51 +126,79 @@ __global__ void fastCalcBeta(
 
     // image_t img = {.rows = rows, .cols = cols, .array = pixels};
     int id = threadIdx.x;
+    // Need overlap on both left & right side
+    uint64_t horizontal_tiles = (cols + tile_width - 3) / (tile_width - 2);
+    // printf("Horizontal Tiles: %lu\n", horizontal_tiles);
 
     float beta = 0.0;
     // Row 0 will be done on CPU
-    for (int y = blockIdx.x + 1; y < rows; y+= gridDim.x) {
+    for (uint64_t y = blockIdx.x + 1; y < rows; y+= gridDim.x) {
 
-        // Copy in 2 rows of the image into shared memory
-        for (int i = id; i < 2 * cols; i += blockDim.x) {
-            shared_mem[i] = pixels[(y-1)*cols + i];
-            shared_mem[i] = pixels[(y-1)*cols + i];
-            shared_mem[i] = pixels[(y-1)*cols + i];
-        }
+        for (uint64_t j = 0; j < horizontal_tiles; j++) {
+            // Copy in 2 rows of the image into shared memory
+            uint64_t rel_col = j * tile_width - 2 * j;
+            for (uint64_t i = id; i < tile_width; i += blockDim.x) {
+                if (rel_col + i < cols) {
+                    shared_mem[i] = pixels[(y-1)*cols + rel_col + i];
+                    shared_mem[i+tile_width] = pixels[y*cols + rel_col + i];
+                }
+            }
+            uint64_t start_row = y - 1;
+            uint64_t end = min(rel_col + tile_width - 1, cols-1);
+            /*
+            if (y < 5)
+                printf("Brought in: (%lu,%lu) - (%lu, %lu)\n", start_row, rel_col, y, end);
+                */
 
-        // Process the two rows
-        int row_index = y * cols;
-        for (int x = id; x < cols; x += blockDim.x)
-        {
-            pixel_t *color = &shared_mem[cols+x];
-            float diff;
-            if (x > 0) // left
+            // Process the two rows
+            uint64_t row_index = y * cols + rel_col;
+            for (uint64_t x = id; x < tile_width-1; x += blockDim.x)
             {
-                // diff = gpu_dot_diff(color, img_at(&img, y, x-1));
-                diff = gpu_dot_diff(color, color-1);
-                beta += diff;
-                leftW[row_index + x] = diff;
-            }
-            if (y > 0 && x > 0) // upleft
-            {
-                // diff = gpu_dot_diff(color, img_at(&img, y-1, x-1));
-                diff = gpu_dot_diff(color, color-cols-1);
-                beta += diff;
-                upleftW[row_index + x] = diff;
-            }
-            if (y > 0) // up
-            {
-                // diff = gpu_dot_diff(color, img_at(&img, y-1, x));
-                diff = gpu_dot_diff(color, color-cols);
-                beta += diff;
-                upW[row_index + x] = diff;
-            }
-            if (y > 0 && x < cols - 1) // upright
-            {
-                // diff = gpu_dot_diff(color, img_at(&img, y-1, x+1));
-                diff = gpu_dot_diff(color, color-cols+1);
-                beta += diff;
-                uprightW[row_index + x] = diff;
+                uint64_t real_x = j > 0 ? rel_col + x + 1: rel_col + x;
+                if (real_x < cols) {
+                    // printf("Col %lu\t", real_x);
+                    pixel_t *color = &shared_mem[tile_width+x];
+                    if (j > 0) color += 1;
+                    float diff;
+                    if (rel_col + x > 0) // left
+                    {
+                        // printf("Left\t");
+                        // diff = gpu_dot_diff(color, img_at(&img, y, x-1));
+                        diff = gpu_dot_diff(color, color-1);
+                        beta += diff;
+                        leftW[row_index + x] = diff;
+                    } else {
+                        leftW[row_index + x] = 0;
+                    }
+                    if (rel_col + x > 0) // upleft
+                    {
+                        // printf("Up Left\t\t");
+                        // diff = gpu_dot_diff(color, img_at(&img, y-1, x-1));
+                        diff = gpu_dot_diff(color, color-tile_width-1);
+                        beta += diff;
+                        upleftW[row_index + x] = diff;
+                    } else {
+                        upleftW[row_index + x] = 0;
+                    }
+
+                    // Up - Always Happens
+                    // diff = gpu_dot_diff(color, img_at(&img, y-1, x));
+                    // printf("Up\t");
+                    diff = gpu_dot_diff(color, color-tile_width);
+                    beta += diff;
+                    upW[row_index + x] = diff;
+
+                    if (rel_col + x < cols - 1) // upright
+                    {
+                        //printf("Up Right\n");
+                        // diff = gpu_dot_diff(color, img_at(&img, y-1, x+1));
+                        diff = gpu_dot_diff(color, color-tile_width+1);
+                        beta += diff;
+                        uprightW[row_index + x] = diff;
+                    } else {
+                        uprightW[row_index + x] = 0;
+                    }
+                }
             }
         }
     }
@@ -251,11 +283,15 @@ void fastCalcConsts(image_t *img, weight_t leftW, weight_t upleftW, weight_t upW
     cudaMemcpy(gpuPixels, img->array, num_pixels * sizeof(pixel_t), cudaMemcpyHostToDevice);
     cudaMemset(gpuBeta, 0, sizeof(float));
 
-    st = omp_get_wtime();
 
+    uint64_t tile_width = min(img->cols, MAX_COLS);
+    uint64_t shared_mem_size = 2 * tile_width * sizeof(pixel_t);
+
+    st = omp_get_wtime();
     // CalcBeta (potentially slower but more work)
-    fastCalcBeta<<<320,THREADS_PER_BLOCK, 2 * img->cols * sizeof(pixel_t), streams[0]>>>(gpuPixels,
-            img->rows, img->cols, gpuLeftW, gpuUpLeftW, gpuUpW, gpuUpRightW, gpuBeta);
+    fastCalcBeta<<<NUM_THREAD_BLOCKS,THREADS_PER_BLOCK, shared_mem_size, streams[0]>>>(
+            gpuPixels, img->rows, img->cols, tile_width,
+            gpuLeftW, gpuUpLeftW, gpuUpW, gpuUpRightW, gpuBeta);
     cudaMemcpyAsync(&beta, gpuBeta, sizeof(int), cudaMemcpyDeviceToHost, streams[0]);
 
     double tmpBeta = cpuCalcBetaRowZero(img->array, img->cols, leftW);
