@@ -1,210 +1,210 @@
 Loaded Image ../dataset/large/bison.jpg
 before bgd num pixels: 11269560
 in gpu 11269560
-K-means for background took: 348544 us
+K-means for background took: 140193 us
 before fgd num pixels 8692296
 in gpu 8692296
-K-means for foreground took: 69477 us
+K-means for foreground took: 71218 us
 done with kmeans
 
 
 Loaded Image ../dataset/large/butterfly.jpg
 before bgd num pixels: 14141532
 in gpu 14141532
-K-means for background took: 317287 us
+K-means for background took: 173996 us
 before fgd num pixels 9858468
 in gpu 9858468
-K-means for foreground took: 69438 us
+K-means for foreground took: 94470 us
 done with kmeans
 
 
 Loaded Image ../dataset/large/cake.jpg
 before bgd num pixels: 12697560
 in gpu 12697560
-K-means for background took: 363082 us
+K-means for background took: 151478 us
 before fgd num pixels 9420840
 in gpu 9420840
-K-means for foreground took: 70897 us
+K-means for foreground took: 80396 us
 done with kmeans
 
 
 Loaded Image ../dataset/large/cake2.jpg
 before bgd num pixels: 22112164
 in gpu 22112164
-K-means for background took: 640352 us
+K-means for background took: 253743 us
 before fgd num pixels 18559713
 in gpu 18559713
-K-means for foreground took: 147638 us
+K-means for foreground took: 148567 us
 done with kmeans
 
 
 Loaded Image ../dataset/large/coffee.jpg
 before bgd num pixels: 15746904
 in gpu 15746904
-K-means for background took: 396620 us
+K-means for background took: 229841 us
 before fgd num pixels 7772436
 in gpu 7772436
-K-means for foreground took: 61026 us
+K-means for foreground took: 64922 us
 done with kmeans
 
 
 Loaded Image ../dataset/large/deer.jpg
 before bgd num pixels: 8067632
 in gpu 8067632
-K-means for background took: 256247 us
+K-means for background took: 108336 us
 before fgd num pixels 12676950
 in gpu 12676950
-K-means for foreground took: 106077 us
+K-means for foreground took: 113080 us
 done with kmeans
 
 
 Loaded Image ../dataset/large/dog.jpg
 before bgd num pixels: 7998659
 in gpu 7998659
-K-means for background took: 312612 us
+K-means for background took: 115850 us
 before fgd num pixels 9917245
 in gpu 9917245
-K-means for foreground took: 80443 us
+K-means for foreground took: 93669 us
 done with kmeans
 
 
 Loaded Image ../dataset/large/dog2.jpg
 before bgd num pixels: 13175466
 in gpu 13175466
-K-means for background took: 358204 us
+K-means for background took: 164706 us
 before fgd num pixels 10465884
 in gpu 10465884
-K-means for foreground took: 78949 us
+K-means for foreground took: 81072 us
 done with kmeans
 
 
 Loaded Image ../dataset/large/duck.jpg
 before bgd num pixels: 17400435
 in gpu 17400435
-K-means for background took: 539074 us
+K-means for background took: 207044 us
 before fgd num pixels 6599565
 in gpu 6599565
-K-means for foreground took: 55336 us
+K-means for foreground took: 56536 us
 done with kmeans
 
 
 Loaded Image ../dataset/large/elephant.jpg
 before bgd num pixels: 6795560
 in gpu 6795560
-K-means for background took: 271716 us
+K-means for background took: 87364 us
 before fgd num pixels 17204440
 in gpu 17204440
-K-means for foreground took: 134315 us
+K-means for foreground took: 148008 us
 done with kmeans
 
 
 Loaded Image ../dataset/large/flower.jpg
 before bgd num pixels: 3220381
 in gpu 3220381
-K-means for background took: 145653 us
+K-means for background took: 47283 us
 before fgd num pixels 7107683
 in gpu 7107683
-K-means for foreground took: 93643 us
+K-means for foreground took: 83276 us
 done with kmeans
 
 
 Loaded Image ../dataset/large/flower2.jpg
 before bgd num pixels: 10215588
 in gpu 10215588
-K-means for background took: 346813 us
+K-means for background took: 141750 us
 before fgd num pixels 13944668
 in gpu 13944668
-K-means for foreground took: 114532 us
+K-means for foreground took: 120566 us
 done with kmeans
 
 
 Loaded Image ../dataset/large/goat.jpg
 before bgd num pixels: 5889190
 in gpu 5889190
-K-means for background took: 212456 us
+K-means for background took: 90947 us
 before fgd num pixels 6914810
 in gpu 6914810
-K-means for foreground took: 68539 us
+K-means for foreground took: 75387 us
 done with kmeans
 
 
 Loaded Image ../dataset/large/hut.jpg
 before bgd num pixels: 6214609
 in gpu 6214609
-K-means for background took: 200326 us
+K-means for background took: 81937 us
 before fgd num pixels 5978159
 in gpu 5978159
-K-means for foreground took: 48054 us
+K-means for foreground took: 64903 us
 done with kmeans
 
 
 Loaded Image ../dataset/large/motorbike.jpg
 before bgd num pixels: 15830202
 in gpu 15830202
-K-means for background took: 404860 us
+K-means for background took: 234962 us
 before fgd num pixels 8169798
 in gpu 8169798
-K-means for foreground took: 62279 us
+K-means for foreground took: 62849 us
 done with kmeans
 
 
 Loaded Image ../dataset/large/museum.jpg
 before bgd num pixels: 648849
 in gpu 648849
-K-means for background took: 41320 us
+K-means for background took: 18947 us
 before fgd num pixels 3214386
 in gpu 3214386
-K-means for foreground took: 52784 us
+K-means for foreground took: 51570 us
 done with kmeans
 
 
 Loaded Image ../dataset/large/tiger.jpg
 before bgd num pixels: 1403826
 in gpu 1403826
-K-means for background took: 38598 us
+K-means for background took: 32148 us
 before fgd num pixels 4612174
 in gpu 4612174
-K-means for foreground took: 41871 us
+K-means for foreground took: 51793 us
 done with kmeans
 
 
 Loaded Image ../dataset/large/tiger2.jpg
 before bgd num pixels: 3379686
 in gpu 3379686
-K-means for background took: 110750 us
+K-means for background took: 51400 us
 before fgd num pixels 3777994
 in gpu 3777994
-K-means for foreground took: 46562 us
+K-means for foreground took: 46623 us
 done with kmeans
 
 
 Loaded Image ../dataset/large/tower.jpg
 before bgd num pixels: 10142752
 in gpu 10142752
-K-means for background took: 257607 us
+K-means for background took: 142542 us
 before fgd num pixels 11489248
 in gpu 11489248
-K-means for foreground took: 88065 us
+K-means for foreground took: 105187 us
 done with kmeans
 
 
 Loaded Image ../dataset/large/turt.jpg
 before bgd num pixels: 24348527
 in gpu 24348527
-K-means for background took: 578467 us
+K-means for background took: 259141 us
 before fgd num pixels 20387985
 in gpu 20387985
-K-means for foreground took: 155987 us
+K-means for foreground took: 155811 us
 done with kmeans
 
 
-Total time for background: 6140588.00 us
-Total time for foreground: 1645912.00 us
+Total time for background: 2733608.00 us
+Total time for foreground: 1769903.00 us
 Total time for Beta calculation: 0.00 us
 Total time for Weights calculation: 0.00 us
 
 
-Total time for background per image (/50): 122811.76 us
-Total time for foreground per image (/50): 32918.24 us
+Total time for background per image (/50): 54672.16 us
+Total time for foreground per image (/50): 35398.06 us
 Total time for Beta calculation per image (/50): 0.00 us
 Total time for Weights calculation per image (/50): 0.00 us

@@ -534,7 +534,7 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
 
     int *bgdLabels = (int *)malloc(bdg_size * sizeof(int));
     int *fgdLabels = (int *)malloc(fgd_size * sizeof(int));
-
+    int threadsPerBlock = 128;
     {
         int num_clusters = std::min(COMPONENT_COUNT, bdg_size);
 
@@ -569,7 +569,6 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
         cudaMemcpy(dev_centroids, centroids, num_clusters * sizeof(Centroid), cudaMemcpyHostToDevice);
 
         cout << "before bgd num pixels: " << bdg_size << endl;
-        int threadsPerBlock = 128;
         int numBlocks = (bdg_size + threadsPerBlock - 1) / (threadsPerBlock);
         auto start = std::chrono::high_resolution_clock::now();
         kmeans_gpu<<<numBlocks, threadsPerBlock>>>(d_bgdR, d_bgdG, d_bgdB, bdg_size,
@@ -624,10 +623,10 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
         }
         cudaMemcpy(dev_centroids, f_centroids, num_clusters * sizeof(Centroid), cudaMemcpyHostToDevice);
 
-        int threadsPerBlock = 1024;
+        
         int numBlocks = (fgd_size + threadsPerBlock - 1) / (threadsPerBlock);
         std::cout << "before fgd num pixels " << fgd_size << endl;
-        ;
+        
         auto start = std::chrono::high_resolution_clock::now();
         kmeans_gpu<<<numBlocks, threadsPerBlock>>>(d_fgdR, d_fgdG, d_fgdB, fgd_size,
                                                    dev_centroids, new_centroids, counts, dev_fgdLabels, num_clusters, kMeansItCount);
