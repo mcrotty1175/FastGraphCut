@@ -715,8 +715,6 @@ void grabCut(image_t *img, rect_t rect, image_t *foreground, image_t *background
     const double lambda = 9 * gamma;
 
     // how to copy image over to the gpu
-    const double beta = calcBeta(img);
-    std::cout << "Beta: " << beta << std::endl;
 
     double *leftW, *upleftW, *upW, *uprightW;
     leftW = (double*)calloc(num_pixels, sizeof(double));
@@ -776,7 +774,6 @@ int main(int argc, char **argv)
     }
 
     cv::Mat image = cv::imread(file_path);
-    cv::Mat image = cv::imread("../dataset/large/flower.jpg");
 
     if (image.empty())
     {

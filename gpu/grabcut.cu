@@ -13,6 +13,7 @@ using namespace std;
 
 #define COMPONENT_COUNT 5
 #define NUM_GPU_STREAMS 4
+#define THREADS_PER_BLOCK 512
 
 
 int cpu_dot_diff(pixel_t *a, pixel_t *b) {
@@ -22,7 +23,6 @@ int cpu_dot_diff(pixel_t *a, pixel_t *b) {
     return (red * red) + (green * green) + (blue * blue);
 }
 
-/*
 static float calcBeta(image_t *img)
 {
     float beta = 0.0;
@@ -76,21 +76,20 @@ static void calcNWeights(image_t *img, weight_t leftW, weight_t upleftW, weight_
         {
             pixel_t *color = img_at(img, y, x);
             leftW[row_index + x] = (x - 1 > 0) ? // left
-                                       gamma * exp(-beta * dot_diff(color, img_at(img, y, x - 1)))
+                                       gamma * exp(-beta * cpu_dot_diff(color, img_at(img, y, x - 1)))
                                                : 0;
             upleftW[row_index + x] = (x - 1 >= 0 && y - 1 >= 0) ? // upleft
-                                         gammaDivSqrt2 * exp(-beta * dot_diff(color, img_at(img, y - 1, x - 1)))
+                                         gammaDivSqrt2 * exp(-beta * cpu_dot_diff(color, img_at(img, y - 1, x - 1)))
                                                                 : 0;
             upW[row_index + x] = (y - 1 > 0) ? // up
-                                     gamma * exp(-beta * dot_diff(color, img_at(img, y - 1, x)))
+                                     gamma * exp(-beta * cpu_dot_diff(color, img_at(img, y - 1, x)))
                                              : 0;
             uprightW[row_index + x] = (x + 1 < img->cols && y - 1 >= 0) ? // upright
-                                          gammaDivSqrt2 * exp(-beta * dot_diff(color, img_at(img, y - 1, x + 1)))
+                                          gammaDivSqrt2 * exp(-beta * cpu_dot_diff(color, img_at(img, y - 1, x + 1)))
                                                                         : 0;
         }
     }
 }
-*/
 
 
 // Calculate the first row on the CPU because it wouldn't utilize GPU shared
@@ -131,6 +130,8 @@ __global__ void fastCalcBeta(
         // Copy in 2 rows of the image into shared memory
         for (int i = id; i < 2 * cols; i += blockDim.x) {
             shared_mem[i] = pixels[(y-1)*cols + i];
+            shared_mem[i] = pixels[(y-1)*cols + i];
+            shared_mem[i] = pixels[(y-1)*cols + i];
         }
 
         // Process the two rows
@@ -142,28 +143,28 @@ __global__ void fastCalcBeta(
             if (x > 0) // left
             {
                 // diff = gpu_dot_diff(color, img_at(&img, y, x-1));
-                diff = gpu_dot_diff(color, color - 1);
+                diff = gpu_dot_diff(color, color-1);
                 beta += diff;
                 leftW[row_index + x] = diff;
             }
             if (y > 0 && x > 0) // upleft
             {
                 // diff = gpu_dot_diff(color, img_at(&img, y-1, x-1));
-                diff = gpu_dot_diff(color, &shared_mem[x-1]);
+                diff = gpu_dot_diff(color, color-cols-1);
                 beta += diff;
                 upleftW[row_index + x] = diff;
             }
             if (y > 0) // up
             {
                 // diff = gpu_dot_diff(color, img_at(&img, y-1, x));
-                diff = gpu_dot_diff(color, &shared_mem[x]);
+                diff = gpu_dot_diff(color, color-cols);
                 beta += diff;
                 upW[row_index + x] = diff;
             }
             if (y > 0 && x < cols - 1) // upright
             {
                 // diff = gpu_dot_diff(color, img_at(&img, y-1, x+1));
-                diff = gpu_dot_diff(color, &shared_mem[x+1]);
+                diff = gpu_dot_diff(color, color-cols+1);
                 beta += diff;
                 uprightW[row_index + x] = diff;
             }
@@ -180,8 +181,24 @@ __global__ void fastCalcBeta(
 __global__ void fastCalcWeights(weight_t w, double beta, double gamma, uint64_t size)
 {
     int id = threadIdx.x + blockDim.x * blockIdx.x;
-    for (int i = id; i < size; i += blockDim.x * gridDim.x) {
-        w[i] = gamma * exp(-beta * w[i]);
+    int t = blockDim.x * gridDim.x;
+
+    uint64_t pixels_per_thread = (size + t - 1) / t;
+    uint64_t start = id * pixels_per_thread;
+    uint64_t count = min(pixels_per_thread, size-start);
+
+    uint64_t iters = (count + 7) / 8;
+    uint64_t i = start;
+    switch (count % 8) {
+        case 0: do {    w[i] = gamma * exp(-beta * w[i]); i++;
+        case 7:         w[i] = gamma * exp(-beta * w[i]); i++;
+        case 6:         w[i] = gamma * exp(-beta * w[i]); i++;
+        case 5:         w[i] = gamma * exp(-beta * w[i]); i++;
+        case 4:         w[i] = gamma * exp(-beta * w[i]); i++;
+        case 3:         w[i] = gamma * exp(-beta * w[i]); i++;
+        case 2:         w[i] = gamma * exp(-beta * w[i]); i++;
+        case 1:         w[i] = gamma * exp(-beta * w[i]); i++;
+                } while (--iters > 0);
     }
 }
 
@@ -237,7 +254,7 @@ void fastCalcConsts(image_t *img, weight_t leftW, weight_t upleftW, weight_t upW
     st = omp_get_wtime();
 
     // CalcBeta (potentially slower but more work)
-    fastCalcBeta<<<320,256, 2 * img->cols * sizeof(pixel_t), streams[0]>>>(gpuPixels,
+    fastCalcBeta<<<320,THREADS_PER_BLOCK, 2 * img->cols * sizeof(pixel_t), streams[0]>>>(gpuPixels,
             img->rows, img->cols, gpuLeftW, gpuUpLeftW, gpuUpW, gpuUpRightW, gpuBeta);
     cudaMemcpyAsync(&beta, gpuBeta, sizeof(int), cudaMemcpyDeviceToHost, streams[0]);
 
@@ -252,23 +269,29 @@ void fastCalcConsts(image_t *img, weight_t leftW, weight_t upleftW, weight_t upW
     else
         beta = 1.f / (2 * beta / (4 * img->cols * img->rows - 3 * img->cols - 3 * img->rows + 2));
 
+    cout << "Beta: " << beta << endl;
+    et = omp_get_wtime();
+    cout<< "GPU calcBeta ran for " <<(et-st)<< " seconds" <<endl;
 
     cudaMemcpyAsync(gpuLeftW, leftW, img->cols * sizeof(double), cudaMemcpyHostToDevice, streams[0]);
     cudaMemsetAsync(gpuUpLeftW, 0, img->cols * sizeof(float), streams[1]);
     cudaMemsetAsync(gpuUpW, 0, img->cols * sizeof(float), streams[2]);
     cudaMemsetAsync(gpuUpRightW, 0, img->cols * sizeof(float), streams[3]);
 
-    cout << "Beta: " << beta << endl;
-    et = omp_get_wtime();
-    cout<< "GPU calcBeta ran for " <<(et-st)<< " seconds" <<endl;
 
     // CalcNWeights (definitely faster)
     st = omp_get_wtime();
     double gammaDivSqrt2 = gamma / sqrt(2.0);
-    fastCalcWeights<<<80,256,0,streams[0]>>>(gpuLeftW, beta, gamma, num_pixels);
-    fastCalcWeights<<<80,256,0,streams[1]>>>(gpuUpLeftW, beta, gammaDivSqrt2, num_pixels);
-    fastCalcWeights<<<80,256,0,streams[2]>>>(gpuUpW, beta, gamma, num_pixels);
-    fastCalcWeights<<<80,256,0,streams[3]>>>(gpuUpRightW, beta, gammaDivSqrt2, num_pixels);
+
+    fastCalcWeights<<<320,THREADS_PER_BLOCK,0,streams[0]>>>(gpuLeftW, beta, gamma, num_pixels);
+    fastCalcWeights<<<320,THREADS_PER_BLOCK,0,streams[1]>>>(gpuUpLeftW, beta, gammaDivSqrt2, num_pixels);
+    fastCalcWeights<<<320,THREADS_PER_BLOCK,0,streams[2]>>>(gpuUpW, beta, gamma, num_pixels);
+    fastCalcWeights<<<320,THREADS_PER_BLOCK,0,streams[3]>>>(gpuUpRightW, beta, gammaDivSqrt2, num_pixels);
+
+    cudaDeviceSynchronize();
+
+    et = omp_get_wtime();
+    cout<< "GPU calcNWeights ran for " <<(et-st)<< " seconds" <<endl;
 
     cudaMemcpyAsync(leftW, gpuLeftW, num_pixels * sizeof(double), cudaMemcpyDeviceToHost, streams[0]);
     cudaMemcpyAsync(upleftW, gpuUpLeftW, num_pixels * sizeof(double), cudaMemcpyDeviceToHost, streams[1]);
@@ -276,8 +299,6 @@ void fastCalcConsts(image_t *img, weight_t leftW, weight_t upleftW, weight_t upW
     cudaMemcpyAsync(uprightW, gpuUpRightW, num_pixels * sizeof(double), cudaMemcpyDeviceToHost, streams[3]);
 
     cudaDeviceSynchronize();
-    et = omp_get_wtime();
-    cout<< "GPU calcNWeights ran for " <<(et-st)<< " seconds" <<endl;
 
     cudaFree(gpuLeftW);
     cudaFree(gpuUpLeftW);
@@ -288,9 +309,16 @@ void fastCalcConsts(image_t *img, weight_t leftW, weight_t upleftW, weight_t upW
         cudaStreamDestroy(streams[i]);
 }
 
-int main()
+int main(int argc, char **argv)
 {
-    cv::Mat image = cv::imread("../dataset/large/flower.jpg");
+    double st, et;
+
+    string file_path = "../dataset/large/flower.jpg";
+    if (argc == 2) {
+        file_path = argv[1];
+    }
+
+    cv::Mat image = cv::imread(file_path);
 
     if (image.empty())
     {
@@ -325,6 +353,16 @@ int main()
     upleftW = (weight_t)malloc(num_pixels *  sizeof(double));
     upW = (weight_t)malloc(num_pixels * sizeof(double));
     uprightW = (weight_t)malloc(num_pixels * sizeof(double));
+
+    st = omp_get_wtime();
+    const double beta = calcBeta(img);
+    et = omp_get_wtime();
+    cout<< "Original calcBeta ran for " <<(et-st)<< " seconds" <<endl;
+
+    st = omp_get_wtime();
+    calcNWeights(img, leftW, upleftW, upW, uprightW, beta, 50);
+    et = omp_get_wtime();
+    cout<< "Original calcNWeights ran for " <<(et-st)<< " seconds" <<endl;
 
     fastCalcConsts(img, leftW, upleftW, upW, uprightW, 50);
 
