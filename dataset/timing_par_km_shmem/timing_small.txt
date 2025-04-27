@@ -1,0 +1,170 @@
+Loaded Image ../dataset/small/bison.jpg
+before bgd num pixels: 704054
+K-means for background took: 541160 us
+before fgd num pixels 543562
+K-means for foreground took: 6 us
+done with kmeans
+
+
+Loaded Image ../dataset/small/butterfly.jpg
+before bgd num pixels: 884053
+K-means for background took: 116879 us
+before fgd num pixels 615947
+K-means for foreground took: 2 us
+done with kmeans
+
+
+Loaded Image ../dataset/small/cake.jpg
+before bgd num pixels: 794055
+K-means for background took: 106856 us
+before fgd num pixels 588345
+K-means for foreground took: 3 us
+done with kmeans
+
+
+Loaded Image ../dataset/small/cake2.jpg
+before bgd num pixels: 1381192
+K-means for background took: 88486 us
+before fgd num pixels 1158360
+K-means for foreground took: 2 us
+done with kmeans
+
+
+Loaded Image ../dataset/small/coffee.jpg
+before bgd num pixels: 983110
+K-means for background took: 87043 us
+before fgd num pixels 486475
+K-means for foreground took: 2 us
+done with kmeans
+
+
+Loaded Image ../dataset/small/deer.jpg
+before bgd num pixels: 503890
+K-means for background took: 75733 us
+before fgd num pixels 791136
+K-means for foreground took: 2 us
+done with kmeans
+
+
+Loaded Image ../dataset/small/dog.jpg
+before bgd num pixels: 499520
+K-means for background took: 76250 us
+before fgd num pixels 620224
+K-means for foreground took: 2 us
+done with kmeans
+
+
+Loaded Image ../dataset/small/dog2.jpg
+before bgd num pixels: 822808
+K-means for background took: 75291 us
+before fgd num pixels 653288
+K-means for foreground took: 2 us
+done with kmeans
+
+
+Loaded Image ../dataset/small/duck.jpg
+before bgd num pixels: 1087104
+K-means for background took: 76082 us
+before fgd num pixels 412896
+K-means for foreground took: 2 us
+done with kmeans
+
+
+Loaded Image ../dataset/small/elephant.jpg
+before bgd num pixels: 424402
+K-means for background took: 76605 us
+before fgd num pixels 1075598
+K-means for foreground took: 2 us
+done with kmeans
+
+
+Loaded Image ../dataset/small/flower.jpg
+before bgd num pixels: 201879
+K-means for background took: 89490 us
+before fgd num pixels 443625
+K-means for foreground took: 3 us
+done with kmeans
+
+
+Loaded Image ../dataset/small/flower2.jpg
+before bgd num pixels: 638737
+K-means for background took: 89592 us
+before fgd num pixels 871279
+K-means for foreground took: 5 us
+done with kmeans
+
+
+Loaded Image ../dataset/small/goat.jpg
+before bgd num pixels: 368030
+K-means for background took: 109948 us
+before fgd num pixels 431970
+K-means for foreground took: 3 us
+done with kmeans
+
+
+Loaded Image ../dataset/small/hut.jpg
+before bgd num pixels: 388312
+K-means for background took: 84648 us
+before fgd num pixels 373736
+K-means for foreground took: 3 us
+done with kmeans
+
+
+Loaded Image ../dataset/small/motorbike.jpg
+before bgd num pixels: 989088
+K-means for background took: 79124 us
+before fgd num pixels 510912
+K-means for foreground took: 2 us
+done with kmeans
+
+
+Loaded Image ../dataset/small/museum.jpg
+before bgd num pixels: 40652
+K-means for background took: 79171 us
+before fgd num pixels 200349
+K-means for foreground took: 2 us
+done with kmeans
+
+
+Loaded Image ../dataset/small/tiger.jpg
+before bgd num pixels: 87700
+K-means for background took: 75825 us
+before fgd num pixels 288300
+K-means for foreground took: 3 us
+done with kmeans
+
+
+Loaded Image ../dataset/small/tiger2.jpg
+before bgd num pixels: 210870
+K-means for background took: 75610 us
+before fgd num pixels 236208
+K-means for foreground took: 3 us
+done with kmeans
+
+
+Loaded Image ../dataset/small/tower.jpg
+before bgd num pixels: 633922
+K-means for background took: 75893 us
+before fgd num pixels 718078
+K-means for foreground took: 2 us
+done with kmeans
+
+
+Loaded Image ../dataset/small/turt.jpg
+before bgd num pixels: 1521841
+K-means for background took: 95285 us
+before fgd num pixels 1273679
+K-means for foreground took: 3 us
+done with kmeans
+
+
+Total time for background: 2174971.00 us
+Total time for foreground: 54.00 us
+Total time for Beta calculation: 0.00 us
+Total time for Weights calculation: 0.00 us
+
+
+Total time for background per image (/50): 43499.42 us
+Total time for foreground per image (/50): 1.08 us
+Total time for Beta calculation per image (/50): 0.00 us
+Total time for Weights calculation per image (/50): 0.00 us
