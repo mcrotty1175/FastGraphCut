@@ -569,7 +569,7 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
         cudaMemcpy(dev_centroids, centroids, num_clusters * sizeof(Centroid), cudaMemcpyHostToDevice);
 
         cout << "before bgd num pixels: " << bdg_size << endl;
-        int threadsPerBlock = 1024;
+        int threadsPerBlock = 128;
         int numBlocks = (bdg_size + threadsPerBlock - 1) / (threadsPerBlock);
         auto start = std::chrono::high_resolution_clock::now();
         kmeans_gpu<<<numBlocks, threadsPerBlock>>>(d_bgdR, d_bgdG, d_bgdB, bdg_size,
@@ -579,7 +579,6 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
         cout << "K-means for background took: " << duration.count() << " us\n";
-        
 
         cudaMemcpy(bgdLabels, dev_bgdLabels, bdg_size * sizeof(int), cudaMemcpyDeviceToHost);
         cudaFree(d_bgdR);
@@ -625,7 +624,7 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
         }
         cudaMemcpy(dev_centroids, f_centroids, num_clusters * sizeof(Centroid), cudaMemcpyHostToDevice);
 
-        int threadsPerBlock = 256;
+        int threadsPerBlock = 1024;
         int numBlocks = (fgd_size + threadsPerBlock - 1) / (threadsPerBlock);
         std::cout << "before fgd num pixels " << fgd_size << endl;
         ;
@@ -931,18 +930,23 @@ void grabCut(image_t *img, rect_t rect, image_t *foreground, image_t *background
     // cout << "after lop\n";
 }
 
-int main()
+int main(int argc, char **argv)
 {
-    // st = omp_get_wtime();
-    string filepath = "../dataset/small/flower.jpg";
-    cv::Mat image = cv::imread(filepath);
+    if (argc < 2)
+    {
+        std::cerr << "Usage: ./SlowGrabCut <image_path> [x1 y1 x2 y2]" << std::endl;
+        return -1;
+    }
+
+    string file_path = argv[1];
+    cv::Mat image = cv::imread(file_path);
+
     if (image.empty())
     {
         std::cerr << "Image not loaded!" << std::endl;
         return -1;
     }
-
-    std::cout << "Loaded Image " << filepath << std::endl;
+    std::cout << "Loaded Image " << file_path << std::endl;
 
     image_t *img = (image_t *)malloc(sizeof(image_t));
     img->rows = image.rows;
@@ -978,8 +982,23 @@ int main()
             */
         }
     }
+    uint64_t x1 = 0, y1 = 0, x2 = img->cols - 1, y2 = img->rows - 1;
 
-    grabCut(img, {132, 75, 845, 525}, foreground, background, 5);
+    if (argc == 6)
+    {
+        x1 = std::stoi(argv[2]);
+        y1 = std::stoi(argv[3]);
+        x2 = std::stoi(argv[4]);
+        y2 = std::stoi(argv[5]);
+    }
+    else
+    {
+        std::cerr << "Warning: No bounding box provided, using full image" << std::endl;
+    }
+
+    grabCut(img, {x1, y1, x2, y2}, foreground, background, 5);
+
+    // grabCut(img, {132, 75, 845, 525}, foreground, background, 5);
     // 132 75 845 525
     free(img->r);
     free(img->g);
