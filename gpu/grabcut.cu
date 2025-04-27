@@ -579,7 +579,7 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
         cout << "K-means for background took: " << duration.count() << " us\n";
-        cout << "hiii\n";
+        
 
         cudaMemcpy(bgdLabels, dev_bgdLabels, bdg_size * sizeof(int), cudaMemcpyDeviceToHost);
         cudaFree(d_bgdR);
