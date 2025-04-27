@@ -534,7 +534,7 @@ static void initGMMs(image_t *img, mask_t *mask, GMM_t *bgdGMM, GMM_t *fgdGMM)
 
     int *bgdLabels = (int *)malloc(bdg_size * sizeof(int));
     int *fgdLabels = (int *)malloc(fgd_size * sizeof(int));
-    int threadsPerBlock = 32;
+    int threadsPerBlock = 16;
     {
         int num_clusters = std::min(COMPONENT_COUNT, bdg_size);
 
