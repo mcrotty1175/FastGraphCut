@@ -1,4 +1,4 @@
-# Install script for directory: /afs/andrew.cmu.edu/usr15/abatrach/private/18646/project/FastGraphCut
+# Install script for directory: /afs/andrew.cmu.edu/usr22/meghnaj/private/18646/FastGraphCut
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -50,5 +50,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/afs/andrew.cmu.edu/usr15/abatrach/private/18646/project/FastGraphCut/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/afs/andrew.cmu.edu/usr22/meghnaj/private/18646/FastGraphCut/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
