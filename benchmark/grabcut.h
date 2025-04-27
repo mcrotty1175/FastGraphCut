@@ -27,17 +27,17 @@ pixel_t *img_at( image_t *img, uint64_t row, uint64_t col) {
 }
 
 double dot_diff(pixel_t *p0, pixel_t *p1) {
-    int red_diff = p0->r - p1->r;
-    int green_diff = p0->g - p1->g;
-    int blue_diff = p0->b - p1->b;
+    int red_diff = (int)(p0->r) - (int)(p1->r);
+    int green_diff = (int)(p0->g) - (int)(p1->g);
+    int blue_diff = (int)(p0->b) - (int)(p1->b);
     return (double)(red_diff * red_diff + green_diff * green_diff + blue_diff + blue_diff);
 }
 
 // Numbers in theory could be utilized for checkMask
 typedef enum __attribute__((__packed__)) {
-    GC_BGD = 0, 
-        GC_FGD = 1, 
-        GC_PR_BGD = 2, 
+    GC_BGD = 0,
+        GC_FGD = 1,
+        GC_PR_BGD = 2,
         GC_PR_FGD = 3
 } MaskVal;
 

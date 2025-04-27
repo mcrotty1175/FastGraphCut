@@ -10,6 +10,7 @@
 #include <iostream>
 #include <chrono>
 #include <filesystem>
+#include <omp.h>
 
 #define COMPONENT_COUNT 5
 using namespace std;
@@ -257,7 +258,11 @@ static double calcBeta(image_t *img)
                 beta += dot_diff(color, img_at(img, y - 1, x + 1));
             }
         }
+        if (y == 0)
+            cout << "Beta after first row: " << beta << endl;
     }
+    cout << "Beta: " << beta << endl;
+
 
     if (beta <= 0.0000001f)
         beta = 0;
@@ -763,12 +768,15 @@ void grabCut(image_t *img, rect_t rect, image_t *foreground, image_t *background
 
 int main(int argc, char **argv)
 {
+    double st, et;
+
     string file_path = "../dataset/large/flower.jpg";
     if (argc == 2) {
         file_path = argv[1];
     }
 
     cv::Mat image = cv::imread(file_path);
+    cv::Mat image = cv::imread("../dataset/large/flower.jpg");
 
     if (image.empty())
     {
@@ -823,11 +831,15 @@ int main(int argc, char **argv)
     upW = (double*)calloc(num_pixels, sizeof(double));
     uprightW = (double*)calloc(num_pixels, sizeof(double));
 
-
+    st = omp_get_wtime();
     const double beta = calcBeta(img);
-    cout << "Beta: " << beta << endl;
+    et = omp_get_wtime();
+    cout<< "Original calcBeta ran for " <<(et-st)<< " seconds" <<endl;
 
+    st = omp_get_wtime();
     calcNWeights(img, leftW, upleftW, upW, uprightW, beta, 50);
+    et = omp_get_wtime();
+    cout<< "Original calcNWeights ran for " <<(et-st)<< " seconds" <<endl;
 
     // grabCut(img, {103, 59, 477, 401}, foreground, background, 5);
     //103 59 477 401 large flower
