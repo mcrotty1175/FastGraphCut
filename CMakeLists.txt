@@ -23,7 +23,7 @@ include_directories(${CUDA_INCLUDE_DIRS})
 
 link_directories(${CUDA_LIBRARY_DIRS})
 
-set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11" )
+set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11 -diag-suppress 611" )
 
 add_executable(SlowGrabCut benchmark/grabcut.cpp )
 target_link_libraries(SlowGrabCut

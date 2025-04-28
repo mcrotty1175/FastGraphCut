@@ -128,7 +128,6 @@ __global__ void fastCalcBeta(
     int id = threadIdx.x;
     // Need overlap on both left & right side
     uint64_t horizontal_tiles = (cols + tile_width - 3) / (tile_width - 2);
-    // printf("Horizontal Tiles: %lu\n", horizontal_tiles);
 
     float beta = 0.0;
     // Row 0 will be done on CPU
@@ -143,12 +142,6 @@ __global__ void fastCalcBeta(
                     shared_mem[i+tile_width] = pixels[y*cols + rel_col + i];
                 }
             }
-            uint64_t start_row = y - 1;
-            uint64_t end = min(rel_col + tile_width - 1, cols-1);
-            /*
-            if (y < 5)
-                printf("Brought in: (%lu,%lu) - (%lu, %lu)\n", start_row, rel_col, y, end);
-                */
 
             // Process the two rows
             uint64_t row_index = y * cols + rel_col;
@@ -156,14 +149,11 @@ __global__ void fastCalcBeta(
             {
                 uint64_t real_x = j > 0 ? rel_col + x + 1: rel_col + x;
                 if (real_x < cols) {
-                    // printf("Col %lu\t", real_x);
                     pixel_t *color = &shared_mem[tile_width+x];
                     if (j > 0) color += 1;
                     float diff;
                     if (rel_col + x > 0) // left
                     {
-                        // printf("Left\t");
-                        // diff = gpu_dot_diff(color, img_at(&img, y, x-1));
                         diff = gpu_dot_diff(color, color-1);
                         beta += diff;
                         leftW[row_index + x] = diff;
@@ -172,8 +162,6 @@ __global__ void fastCalcBeta(
                     }
                     if (rel_col + x > 0) // upleft
                     {
-                        // printf("Up Left\t\t");
-                        // diff = gpu_dot_diff(color, img_at(&img, y-1, x-1));
                         diff = gpu_dot_diff(color, color-tile_width-1);
                         beta += diff;
                         upleftW[row_index + x] = diff;
@@ -183,15 +171,12 @@ __global__ void fastCalcBeta(
 
                     // Up - Always Happens
                     // diff = gpu_dot_diff(color, img_at(&img, y-1, x));
-                    // printf("Up\t");
                     diff = gpu_dot_diff(color, color-tile_width);
                     beta += diff;
                     upW[row_index + x] = diff;
 
                     if (rel_col + x < cols - 1) // upright
                     {
-                        //printf("Up Right\n");
-                        // diff = gpu_dot_diff(color, img_at(&img, y-1, x+1));
                         diff = gpu_dot_diff(color, color-tile_width+1);
                         beta += diff;
                         uprightW[row_index + x] = diff;
@@ -289,7 +274,7 @@ void fastCalcConsts(image_t *img, weight_t leftW, weight_t upleftW, weight_t upW
 
     st = omp_get_wtime();
     // CalcBeta (potentially slower but more work)
-    fastCalcBeta<<<NUM_THREAD_BLOCKS,THREADS_PER_BLOCK, shared_mem_size, streams[0]>>>(
+    fastCalcBeta<<<NUM_THREAD_BLOCKS,32, shared_mem_size, streams[0]>>>(
             gpuPixels, img->rows, img->cols, tile_width,
             gpuLeftW, gpuUpLeftW, gpuUpW, gpuUpRightW, gpuBeta);
     cudaMemcpyAsync(&beta, gpuBeta, sizeof(int), cudaMemcpyDeviceToHost, streams[0]);
@@ -319,10 +304,10 @@ void fastCalcConsts(image_t *img, weight_t leftW, weight_t upleftW, weight_t upW
     st = omp_get_wtime();
     double gammaDivSqrt2 = gamma / sqrt(2.0);
 
-    fastCalcWeights<<<320,THREADS_PER_BLOCK,0,streams[0]>>>(gpuLeftW, beta, gamma, num_pixels);
-    fastCalcWeights<<<320,THREADS_PER_BLOCK,0,streams[1]>>>(gpuUpLeftW, beta, gammaDivSqrt2, num_pixels);
-    fastCalcWeights<<<320,THREADS_PER_BLOCK,0,streams[2]>>>(gpuUpW, beta, gamma, num_pixels);
-    fastCalcWeights<<<320,THREADS_PER_BLOCK,0,streams[3]>>>(gpuUpRightW, beta, gammaDivSqrt2, num_pixels);
+    fastCalcWeights<<<NUM_THREAD_BLOCKS/8,THREADS_PER_BLOCK,0,streams[0]>>>(gpuLeftW, beta, gamma, num_pixels);
+    fastCalcWeights<<<NUM_THREAD_BLOCKS/8,THREADS_PER_BLOCK,0,streams[1]>>>(gpuUpLeftW, beta, gammaDivSqrt2, num_pixels);
+    fastCalcWeights<<<NUM_THREAD_BLOCKS/8,THREADS_PER_BLOCK,0,streams[2]>>>(gpuUpW, beta, gamma, num_pixels);
+    fastCalcWeights<<<NUM_THREAD_BLOCKS/8,THREADS_PER_BLOCK,0,streams[3]>>>(gpuUpRightW, beta, gammaDivSqrt2, num_pixels);
 
     cudaDeviceSynchronize();
 
@@ -380,7 +365,6 @@ int main(int argc, char **argv)
             img->array[r * img->cols + c].b = color[0];
         }
     }
-
 
     uint64_t num_pixels = img->rows * img->cols;
     double *leftW, *upleftW, *upW, *uprightW;
